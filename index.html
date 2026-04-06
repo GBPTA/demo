@@ -32,17 +32,6 @@
       padding: 0;
     }
     
-    .video-background {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: -1;
-      opacity: 0.4; /* Always visible with moderate opacity */
-    }
-    
     .overlay {
       position: fixed;
       top: 0;
@@ -441,51 +430,9 @@
 <body>
   <!-- Background images that change with slider -->
   <div class="background-image" id="background-image"></div>
-  
-  <video class="video-background" autoplay muted loop playsinline>
-    <source src="1.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+
   <div class="overlay"></div>
-  
-  <!-- Force video to start at 12s and loop from there -->
-  <script>
-    (function() {
-      const video = document.querySelector('.video-background');
-      if (!video) return;
-      const START_TIME = 12;
 
-      function seekToStart() {
-        try {
-          video.currentTime = START_TIME;
-        } catch (e) {
-          // silently ignore
-        }
-      }
-
-      // On metadata loaded, we can safely seek
-      video.addEventListener('loadedmetadata', () => {
-        seekToStart();
-        const playPromise = video.play();
-        if (playPromise && typeof playPromise.then === 'function') {
-          playPromise.catch(() => {});
-        }
-      });
-
-      // If the video starts playing before metadata, try seeking shortly after
-      video.addEventListener('play', () => {
-        if (video.currentTime < START_TIME - 0.25) {
-          setTimeout(seekToStart, 100);
-        }
-      });
-
-      // When video ends (in case loop is disabled by browser), seek and play
-      video.addEventListener('ended', () => {
-        seekToStart();
-        video.play();
-      });
-    })();
-  </script>
   
   <!-- Main Title -->
   <div class="main-title" id="title-section">
@@ -975,3 +922,4 @@
   </script>
 </body>
 </html>
+
