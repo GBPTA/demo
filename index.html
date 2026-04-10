@@ -24,7 +24,7 @@
     }
     body {
       width: 100vw;
-      height: 280vh; /* Extended page height to fit PPD section */
+      height: 400vh; /* Extended page height to fit all sections */
       background: #f7f7f7;
       position: relative;
       overflow-x: hidden;
@@ -53,7 +53,7 @@
       backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.2);
       position: absolute;
-      top: 185vh;
+      top: 270vh;
       left: 50%;
       transform: translateX(-50%);
       opacity: 1;
@@ -171,6 +171,55 @@
       width: 95%;
       opacity: 1;
       transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .image-slideshow-container {
+      position: absolute;
+      top: 185vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 650px;
+      width: 95%;
+      opacity: 1;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .image-slideshow-container h4 {
+      margin: 0 0 15px 0;
+      color: #1976d2;
+      font-size: 1.6rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .image-slide {
+      display: none;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      box-sizing: border-box;
+      background: #fff;
+    }
+
+    .image-slide.active {
+      display: flex;
+    }
+
+    .image-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #fff;
     }
     
     .slideshow-container h4 {
@@ -295,7 +344,7 @@
     
     .realworld-box {
       position: absolute;
-      top: 245vh;
+      top: 330vh;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
@@ -448,6 +497,44 @@
     <p style="margin-top: 15px;">
       In this paper, we propose a fully distributed framework, called GBPTA, for coordinating multiple robots to solve the multi-robot multi-task allocation problem using Gaussian Belief Propagation (GBP). The proposed framework is applied to solve well-known problems such as pursuit-evasion (PE) and package pickup and delivery. GBPTA can operate in different environments and under varying communication radii. Moreover, the proposed approach is capable of handling problems where multiple features need to be considered for task allocation. Through various simulations and hardware experiments, we demonstrate that GBPTA can assign tasks to robots in a way that is close to the optimal solution. Despite being fully distributed, it outperforms other distributed approaches and reduces the assignment utility by 4.3% compared to other techniques and is better than all compared distributed approaches.
     </p>
+  </div>
+
+  <!-- Additional Image Slideshow (above Involved Factors) -->
+  <div class="image-slideshow-container" id="image-slideshow-section">
+    <h4>Example Scenario</h4>
+    <div class="slideshow-wrapper">
+      <div class="image-slide active"><img src="images/1.png" alt="Slide 1"></div>
+      <div class="image-slide"><img src="images/2.png" alt="Slide 2"></div>
+      <div class="image-slide"><img src="images/3.png" alt="Slide 3"></div>
+      <div class="image-slide"><img src="images/4.png" alt="Slide 4"></div>
+      <div class="image-slide"><img src="images/5.png" alt="Slide 5"></div>
+      <div class="image-slide"><img src="images/6.png" alt="Slide 6"></div>
+      <div class="image-slide"><img src="images/7.png" alt="Slide 7"></div>
+      <div class="image-slide"><img src="images/8.png" alt="Slide 8"></div>
+      <div class="image-slide"><img src="images/9.png" alt="Slide 9"></div>
+      <div class="image-slide"><img src="images/10.png" alt="Slide 10"></div>
+    </div>
+
+    <div class="slideshow-controls">
+      <button class="slide-btn" id="imgPrevBtn">← Previous</button>
+      <div class="slide-indicators">
+        <span class="indicator active" data-slide="0"></span>
+        <span class="indicator" data-slide="1"></span>
+        <span class="indicator" data-slide="2"></span>
+        <span class="indicator" data-slide="3"></span>
+        <span class="indicator" data-slide="4"></span>
+        <span class="indicator" data-slide="5"></span>
+        <span class="indicator" data-slide="6"></span>
+        <span class="indicator" data-slide="7"></span>
+        <span class="indicator" data-slide="8"></span>
+        <span class="indicator" data-slide="9"></span>
+      </div>
+      <button class="slide-btn" id="imgNextBtn">Next →</button>
+    </div>
+
+    <div class="slide-counter">
+      <span id="imgCurrentSlide">1</span> / <span id="imgTotalSlides">10</span>
+    </div>
   </div>
   
   <!-- Slideshow Container -->
@@ -765,71 +852,110 @@
 
   <script>
     // Slideshow functionality
-    let currentSlideIndex = 0;
-    const slides = document.querySelectorAll('#slideshow-section .slide');
-    const indicators = document.querySelectorAll('#slideshow-section .indicator');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const currentSlideSpan = document.getElementById('currentSlide');
-    const totalSlidesSpan = document.getElementById('totalSlides');
-    
-    function showSlide(index) {
-      // Hide all slides
-      slides.forEach(slide => slide.classList.remove('active'));
-      indicators.forEach(indicator => indicator.classList.remove('active'));
-      
-      // Show current slide
-      slides[index].classList.add('active');
-      indicators[index].classList.add('active');
-      
-      // Update counter
-      currentSlideSpan.textContent = index + 1;
-      
-      // Update button states
-      prevBtn.disabled = index === 0;
-      nextBtn.disabled = index === slides.length - 1;
-    }
-    
-    function nextSlide() {
-      if (currentSlideIndex < slides.length - 1) {
-        currentSlideIndex++;
+    function initSlideshow(config) {
+      const section = document.getElementById(config.sectionId);
+      if (!section) return;
+
+      const slides = section.querySelectorAll(config.slideSelector);
+      const indicators = section.querySelectorAll(config.indicatorSelector);
+      const prevBtn = document.getElementById(config.prevBtnId);
+      const nextBtn = document.getElementById(config.nextBtnId);
+      const currentSlideSpan = document.getElementById(config.currentSlideId);
+      const totalSlidesSpan = document.getElementById(config.totalSlidesId);
+      let currentSlideIndex = 0;
+
+      function showSlide(index) {
+        slides.forEach(slide => slide.classList.remove('active'));
+        indicators.forEach(indicator => indicator.classList.remove('active'));
+
+        slides[index].classList.add('active');
+        indicators[index].classList.add('active');
+
+        if (currentSlideSpan) {
+          currentSlideSpan.textContent = index + 1;
+        }
+
+        if (prevBtn) {
+          prevBtn.disabled = index === 0;
+        }
+
+        if (nextBtn) {
+          nextBtn.disabled = index === slides.length - 1;
+        }
+      }
+
+      function nextSlide() {
+        if (currentSlideIndex < slides.length - 1) {
+          currentSlideIndex++;
+          showSlide(currentSlideIndex);
+        }
+      }
+
+      function prevSlide() {
+        if (currentSlideIndex > 0) {
+          currentSlideIndex--;
+          showSlide(currentSlideIndex);
+        }
+      }
+
+      function goToSlide(index) {
+        currentSlideIndex = index;
         showSlide(currentSlideIndex);
       }
-    }
-    
-    function prevSlide() {
-      if (currentSlideIndex > 0) {
-        currentSlideIndex--;
-        showSlide(currentSlideIndex);
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', nextSlide);
       }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', prevSlide);
+      }
+
+      if (config.enableIndicators !== false) {
+        indicators.forEach((indicator, index) => {
+          indicator.addEventListener('click', () => goToSlide(index));
+        });
+      }
+
+      if (config.autoAdvanceMs > 0 && slides.length > 1) {
+        setInterval(() => {
+          if (currentSlideIndex < slides.length - 1) {
+            nextSlide();
+          } else {
+            goToSlide(0);
+          }
+        }, config.autoAdvanceMs);
+      }
+
+      if (totalSlidesSpan) {
+        totalSlidesSpan.textContent = slides.length;
+      }
+
+      showSlide(0);
     }
-    
-    function goToSlide(index) {
-      currentSlideIndex = index;
-      showSlide(currentSlideIndex);
-    }
-    
-    // Event listeners
-    nextBtn.addEventListener('click', nextSlide);
-    prevBtn.addEventListener('click', prevSlide);
-    
-    // Indicator click events
-    indicators.forEach((indicator, index) => {
-      indicator.addEventListener('click', () => goToSlide(index));
+
+    initSlideshow({
+      sectionId: 'image-slideshow-section',
+      slideSelector: '.image-slide',
+      indicatorSelector: '.indicator',
+      prevBtnId: 'imgPrevBtn',
+      nextBtnId: 'imgNextBtn',
+      currentSlideId: 'imgCurrentSlide',
+      totalSlidesId: 'imgTotalSlides',
+      autoAdvanceMs: 0,
+      enableIndicators: false
     });
-    
-    // Auto-advance slideshow every 5 seconds
-    setInterval(() => {
-      if (currentSlideIndex < slides.length - 1) {
-        nextSlide();
-      } else {
-        goToSlide(0); // Reset to first slide
-      }
-    }, 5000);
-    
-    // Initialize
-    showSlide(0);
-    totalSlidesSpan.textContent = slides.length;
+
+    initSlideshow({
+      sectionId: 'slideshow-section',
+      slideSelector: '.slide',
+      indicatorSelector: '.indicator',
+      prevBtnId: 'prevBtn',
+      nextBtnId: 'nextBtn',
+      currentSlideId: 'currentSlide',
+      totalSlidesId: 'totalSlides',
+      autoAdvanceMs: 5000
+    });
     
     
     // Form submission
