@@ -346,7 +346,61 @@
     .content-section.visible {
       opacity: 1;
     }
-    
+
+    /* PDF link box (below abstract) */
+    .pdf-box {
+      position: absolute;
+      top: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 650px;
+      width: 95%;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pdf-box h3 {
+      margin: 0 0 15px 0;
+      color: #1976d2;
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-align: center;
+      width: 100%;
+    }
+
+    .pdf-box .pdf-content {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .pdf-box .pdf-text {
+      flex: 1;
+      text-align: left;
+    }
+
+    .pdf-box .pdf-image {
+      width: 150px;
+      height: 150px;
+      object-fit: contain;
+      cursor: pointer;
+      transition: transform 0.2s ease, filter 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .pdf-box .pdf-image:hover {
+      transform: scale(1.05);
+      filter: brightness(0.9);
+    }
+
     .realworld-box {
       position: absolute;
       top: 330vh;
@@ -497,11 +551,22 @@
   <div class="abstract-box" id="abstract-section">
     <h3>Abstract</h3>
     <p>
-      Multi-robot systems are used in various fields such as warehouse management and manufacturing. In addition to the challenges faced by a single robot, task assignment emerges as a key problem that must be addressed when solving multiple tasks with multiple robots. One of the main criteria for evaluating multi-robot systems is their ability to operate effectively in real-world and dynamic environments. In certain scenarios, the true information about tasks and robots may be unknown, requiring methods that can operate with noisy data and handle uncertainty.
+      Multi-robot systems are used in various fields such as autonomous transportation and delivery. A key component in enabling these systems is task allocation, which becomes significantly more complex when coordinating multiple robots. For solving the task allocation problem, the challenges extend beyond those faced by a single robot, requiring robust coordination strategies. Moreover, a critical factor in evaluating multi-robot systems is their ability to operate reliably in real-world, dynamic environments. In many scenarios, ground-truth information about robots and tasks may be unavailable, demanding methods that can function with noisy observations and handle substantial uncertainty.
     </p>
     <p style="margin-top: 15px;">
-      In this paper, we propose a fully distributed framework, called GBPTA, for coordinating multiple robots to solve the multi-robot multi-task allocation problem using Gaussian Belief Propagation (GBP). The proposed framework is applied to solve well-known problems such as pursuit-evasion (PE) and package pickup and delivery. GBPTA can operate in different environments and under varying communication radii. Moreover, the proposed approach is capable of handling problems where multiple features need to be considered for task allocation. Through various simulations and hardware experiments, we demonstrate that GBPTA can assign tasks to robots in a way that is close to the optimal solution. Despite being fully distributed, it outperforms other distributed approaches and reduces the assignment utility by 4.3% compared to other techniques and is better than all compared distributed approaches.
+      In this paper, we propose GBPTA, a fully distributed framework for multi-robot multi-task allocation problem, using Gaussian Belief Propagation. The proposed framework is applied to two scenarios: multi-robot pursuit-evasion and package pickup and delivery. GBPTA can operate in different environments and under varying communication radii. Moreover, the proposed approach can handle problems in which multiple features must be considered for task allocation. Through various simulations and hardware experiments, we show that GBPTA achieves near-optimal task assignments. GBPTA improves the assignment utility, defined as the negative total distance between robots and tasks, by 23.95% compared to the distributed Hungarian methods.
     </p>
+  </div>
+
+  <!-- Paper PDF box (below Abstract) -->
+  <div class="pdf-box" id="pdf-section">
+    <h3>Paper PDF</h3>
+    <div class="pdf-content">
+      <div class="pdf-text">
+        <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.6;">The pdf of the paper with numerical examples can be found <a href="https://github.com/GBPTA/demo/blob/main/GBPTA-with-examples.pdf" target="_blank" style="color: #1976d2; text-decoration: none; font-weight: bold;">here.</a></p>
+      </div>
+      <img class="pdf-image" id="pdf-image" src="123.png" alt="PDF File" data-pdf-url="https://github.com/GBPTA/demo/blob/main/GBPTA-with-examples.pdf" />
+    </div>
   </div>
 
   <!-- Additional Image Slideshow (above Involved Factors) -->
@@ -1057,6 +1122,7 @@
             const ids = [
               'title-section',
               'abstract-section',
+              'pdf-section',
               'image-slideshow-section',
               'slideshow-section',
               'form-section',
@@ -1106,8 +1172,39 @@
             if (!m.complete) m.addEventListener('load', schedulePosition);
             if (m.tagName === 'VIDEO') m.addEventListener('loadedmetadata', schedulePosition);
           });
+
+          // PDF image click handler: accepts direct URL or GitHub blob URL and converts to raw link
+          const pdfImage = document.getElementById('pdf-image');
+          if (pdfImage) {
+            pdfImage.addEventListener('click', () => {
+              let url = pdfImage.getAttribute('data-pdf-url');
+              if (!url || !url.trim()) return;
+              url = url.trim();
+              if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+              const toRawGithub = (u) => {
+                try {
+                  const parsed = new URL(u);
+                  if (parsed.hostname.toLowerCase() === 'github.com') {
+                    const parts = parsed.pathname.split('/').filter(Boolean);
+                    const blobIndex = parts.indexOf('blob');
+                    if (blobIndex !== -1 && parts.length > blobIndex + 1) {
+                      const user = parts[0];
+                      const repo = parts[1];
+                      const branch = parts[blobIndex + 1];
+                      const filePath = parts.slice(blobIndex + 2).join('/');
+                      return `https://raw.githubusercontent.com/${user}/${repo}/${branch}/${filePath}`;
+                    }
+                  }
+                } catch (e) {}
+                return u;
+              };
+
+              const rawUrl = toRawGithub(url);
+              try { window.open(rawUrl, '_blank'); } catch (e) { location.href = rawUrl; }
+            });
+          }
         })();
   </script>
 </body>
 </html>
-
