@@ -157,7 +157,7 @@
     
     .slideshow-container {
       position: absolute;
-      top: 100vh;
+      top: 110vh;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
@@ -175,7 +175,7 @@
 
     .image-slideshow-container {
       position: absolute;
-      top: 185vh;
+      top: 205vh;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
@@ -238,6 +238,11 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       background: #f8f9fa;
+    }
+
+    /* Increase height specifically for the Involved Factors slideshow */
+    #slideshow-section .slideshow-wrapper {
+      height: 800px;
     }
     
     .slide {
@@ -732,22 +737,22 @@
           <div class="slide-title">Convergence Factor</div>
           <div class="slide-description">
             <p style="margin: 15px 0;">
-              This factor checks whether the criteria in Eq.~\eqref{eq:optimization} are met across all robots. It measures the degree of convergence (i.e., overlap) in task assignment vectors in a differentiable way.
+            It measures the degree of convergence (i.e., overlap) in task assignment vectors in a differentiable way.
             </p>
             <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
-              $$h^{cv} = \sum_{i=1}^{N_p} \sum_{j=i+1}^{N_p} \boldsymbol{a}^i_t(\boldsymbol{a}^j_t)^{\top} - cv_t.$$ 
+              $$h^{v} = \sum_{i=1}^{N_p} \sum_{j=i+1}^{N_p} \boldsymbol{a}^i_t(\boldsymbol{a}^j_t)^{\top} - v_t.$$ 
             </div>
             <p style="margin: 15px 0;">
-              If $h^{cv}$ is near zero, it means the task assignment vectors are close to orthogonal, implying robots are selecting distinct tasks, and the condition in Eq.~\eqref{eq:optimization} is met. 
+              If $h^{v}$ is near zero, it means the task assignment vectors are close to orthogonal, implying robots are selecting distinct tasks. 
             </p>
             <p style="margin: 15px 0;">
               The Jacobian of this factor with respect to the stacked variable 
-              $\begin{bmatrix} \boldsymbol{a}^1_t & \cdots & \boldsymbol{a}^{N_p}_t & cv_t \end{bmatrix}^\top$
+              $\begin{bmatrix} \boldsymbol{a}^1_t & \cdots & \boldsymbol{a}^{N_p}_t & v_t \end{bmatrix}^\top$
               is given by:
             </p>
             <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
               $$
-              \frac{\partial h^{cv}}{\partial \begin{bmatrix} \boldsymbol{a}^1_t \\ \vdots \\ \boldsymbol{a}^{N_p}_t \\ cv_t \end{bmatrix}} = 
+              \frac{\partial h^{v}}{\partial \begin{bmatrix} \boldsymbol{a}^1_t \\ \vdots \\ \boldsymbol{a}^{N_p}_t \\ v_t \end{bmatrix}} = 
               \begin{bmatrix}
               \sum_{j \ne 1} \left(\boldsymbol{a}^j_t\right)^\top \\
               \sum_{j \ne 2} \left(\boldsymbol{a}^j_t\right)^\top \\
@@ -954,7 +959,7 @@
       nextBtnId: 'nextBtn',
       currentSlideId: 'currentSlide',
       totalSlidesId: 'totalSlides',
-      autoAdvanceMs: 5000
+      autoAdvanceMs: 0
     });
     
     
@@ -969,7 +974,7 @@
         'robot2_x','robot2_y','robot2_theta'
       ].map(id => `${id}=${encodeURIComponent(document.getElementById(id).value)}`).join('&');
       window.location.href = `graph_withfactorsTA.html?${params}`;
-    });
+    }); 
 
       // Real World video: mute (already muted attribute), set 3x speed, autoplay if possible,
       // and stop (pause) when reaching 51 seconds.
@@ -1044,6 +1049,63 @@
           window.addEventListener('load', positionPickup);
           window.addEventListener('resize', positionPickup);
           setTimeout(positionPickup, 400);
+        })();
+
+        // Dynamically position main sections sequentially to avoid collisions
+        (function() {
+          function positionSequentially() {
+            const ids = [
+              'title-section',
+              'abstract-section',
+              'image-slideshow-section',
+              'slideshow-section',
+              'form-section',
+              'realworld-section',
+              'pursuit-section',
+              'pickup-section'
+            ];
+
+            const gap = 30; // px gap between sections
+            const docTop = window.scrollY || window.pageYOffset;
+
+            let prevBottom = 0;
+
+            ids.forEach(id => {
+              const el = document.getElementById(id);
+              if (!el) return;
+
+              const rect = el.getBoundingClientRect();
+              const elTopAbs = docTop + rect.top;
+              const elBottomAbs = elTopAbs + el.offsetHeight;
+
+              if (prevBottom === 0) {
+                // Keep the element's current position as first reference
+                prevBottom = elBottomAbs;
+                return;
+              }
+
+              const newTop = prevBottom + gap;
+              el.style.top = newTop + 'px';
+              prevBottom = newTop + el.offsetHeight;
+            });
+          }
+
+          function schedulePosition() {
+            positionSequentially();
+            setTimeout(positionSequentially, 150);
+            setTimeout(positionSequentially, 600);
+            setTimeout(positionSequentially, 1200);
+          }
+
+          window.addEventListener('load', schedulePosition);
+          window.addEventListener('resize', schedulePosition);
+
+          // Reposition when images or other media load
+          const media = document.querySelectorAll('img, video');
+          media.forEach(m => {
+            if (!m.complete) m.addEventListener('load', schedulePosition);
+            if (m.tagName === 'VIDEO') m.addEventListener('loadedmetadata', schedulePosition);
+          });
         })();
   </script>
 </body>
