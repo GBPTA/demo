@@ -1,0 +1,4738 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GBPTA | Gaussian Belief Propagation Based Task Allocation</title>
+
+  <!-- =========================================================
+       MATHJAX
+       ========================================================= -->
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+
+  <script
+    id="MathJax-script"
+    async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+  </script>
+
+
+  <style>
+
+    /* =========================================================
+       DESIGN VARIABLES
+       ========================================================= */
+
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #eff6ff;
+
+      --accent: #06b6d4;
+
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --surface-alt: #f1f5f9;
+
+      --border: #e2e8f0;
+
+      --success: #16a34a;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+
+      --shadow-sm:
+        0 4px 15px rgba(15, 23, 42, 0.06);
+
+      --shadow-md:
+        0 10px 30px rgba(15, 23, 42, 0.08);
+
+      --shadow-lg:
+        0 20px 50px rgba(15, 23, 42, 0.12);
+
+      --max-width: 1180px;
+    }
+
+
+    /* =========================================================
+       GLOBAL
+       ========================================================= */
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 90px;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+
+      background: var(--background);
+      color: var(--text);
+
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    img,
+    video {
+      max-width: 100%;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+
+    /* =========================================================
+       NAVIGATION
+       ========================================================= */
+
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 2000;
+
+      width: 100%;
+
+      background: rgba(255, 255, 255, 0.92);
+
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+
+      border-bottom:
+        1px solid rgba(226, 232, 240, 0.9);
+
+      box-shadow:
+        0 2px 12px rgba(15, 23, 42, 0.04);
+    }
+
+    .nav-container {
+      width:
+        min(
+          var(--max-width),
+          calc(100% - 40px)
+        );
+
+      min-height: 68px;
+
+      margin: 0 auto;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 30px;
+    }
+
+    .nav-logo {
+      font-size: 1.35rem;
+      font-weight: 800;
+
+      color: var(--primary);
+
+      white-space: nowrap;
+
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+
+      gap: 24px;
+
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+
+      font-size: 0.92rem;
+      font-weight: 600;
+
+      transition:
+        color 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+
+      text-decoration: none;
+
+      transform: translateY(-1px);
+    }
+
+    .nav-paper {
+      padding: 8px 15px;
+
+      border-radius: 9px;
+
+      background: var(--primary);
+
+      color: white !important;
+    }
+
+    .nav-paper:hover {
+      background: var(--primary-dark);
+      color: white !important;
+    }
+
+
+    /* =========================================================
+       MAIN
+       ========================================================= */
+
+    main {
+      width:
+        min(
+          var(--max-width),
+          calc(100% - 40px)
+        );
+
+      margin: 0 auto;
+    }
+
+    .section {
+      margin: 70px 0;
+      scroll-margin-top: 90px;
+    }
+
+    .section-card {
+      background: var(--surface);
+
+      border:
+        1px solid var(--border);
+
+      border-radius:
+        var(--radius-lg);
+
+      box-shadow:
+        var(--shadow-md);
+
+      padding: 36px;
+    }
+
+    .section-heading {
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .section-heading .eyebrow {
+      display: inline-block;
+
+      margin-bottom: 7px;
+
+      color: var(--primary);
+
+      font-size: 0.78rem;
+      font-weight: 800;
+
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+
+      color: var(--text);
+
+      font-size:
+        clamp(
+          1.7rem,
+          3vw,
+          2.25rem
+        );
+
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+    }
+
+    .section-heading p {
+      max-width: 760px;
+
+      margin:
+        12px auto 0;
+
+      color: var(--text-secondary);
+
+      font-size: 1rem;
+    }
+
+
+    /* =========================================================
+       HERO
+       ========================================================= */
+
+    .hero {
+      position: relative;
+
+      min-height: 590px;
+
+      margin-top: 30px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      overflow: hidden;
+
+      border-radius: 28px;
+
+      background:
+        linear-gradient(
+          135deg,
+          rgba(15, 23, 42, 0.94),
+          rgba(30, 64, 175, 0.92)
+        );
+
+      box-shadow:
+        var(--shadow-lg);
+    }
+
+    .hero::before {
+      content: "";
+
+      position: absolute;
+
+      width: 500px;
+      height: 500px;
+
+      top: -250px;
+      right: -120px;
+
+      border-radius: 50%;
+
+      background:
+        rgba(255, 255, 255, 0.07);
+    }
+
+    .hero::after {
+      content: "";
+
+      position: absolute;
+
+      width: 400px;
+      height: 400px;
+
+      bottom: -250px;
+      left: -100px;
+
+      border-radius: 50%;
+
+      background:
+        rgba(6, 182, 212, 0.12);
+    }
+
+    .hero-content {
+      position: relative;
+
+      z-index: 1;
+
+      width:
+        min(
+          850px,
+          calc(100% - 40px)
+        );
+
+      padding: 70px 30px;
+
+      text-align: center;
+
+      color: white;
+    }
+
+    .hero-badge {
+      display: inline-block;
+
+      padding: 7px 15px;
+
+      margin-bottom: 24px;
+
+      border:
+        1px solid
+        rgba(255, 255, 255, 0.2);
+
+      border-radius: 999px;
+
+      background:
+        rgba(255, 255, 255, 0.09);
+
+      font-size: 0.82rem;
+      font-weight: 700;
+
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin: 0;
+
+      font-size:
+        clamp(
+          2.5rem,
+          6vw,
+          4.8rem
+        );
+
+      line-height: 1.03;
+      letter-spacing: -0.05em;
+      font-weight: 850;
+    }
+
+    .hero-title-secondary {
+      display: block;
+
+      margin-top: 10px;
+
+      color: white;
+
+      font-size: inherit;
+
+      font-weight: inherit;
+      letter-spacing: inherit;
+    }
+
+    .hero-description {
+      max-width: 680px;
+
+      margin:
+        26px auto 0;
+
+      color:
+        rgba(255, 255, 255, 0.82);
+
+      font-size:
+        clamp(
+          1rem,
+          2vw,
+          1.15rem
+        );
+
+      line-height: 1.75;
+    }
+
+    .hero-buttons {
+      display: flex;
+
+      justify-content: center;
+      flex-wrap: wrap;
+
+      gap: 14px;
+
+      margin-top: 34px;
+    }
+
+    .hero-button {
+      display: inline-flex;
+
+      align-items: center;
+      justify-content: center;
+
+      min-width: 175px;
+
+      padding: 12px 20px;
+
+      border-radius: 10px;
+
+      font-size: 0.95rem;
+      font-weight: 700;
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+    }
+
+    .hero-button:hover {
+      text-decoration: none;
+      transform: translateY(-2px);
+    }
+
+    .hero-button.primary {
+      background: white;
+      color: var(--primary);
+
+      box-shadow:
+        0 8px 25px
+        rgba(0, 0, 0, 0.18);
+    }
+
+    .hero-button.secondary {
+      color: white;
+
+      background:
+        rgba(255, 255, 255, 0.08);
+
+      border:
+        1px solid
+        rgba(255, 255, 255, 0.25);
+    }
+
+    .hero-button.secondary:hover {
+      background:
+        rgba(255, 255, 255, 0.14);
+    }
+
+    .hero-meta {
+      margin-top: 36px;
+
+      color:
+        rgba(255, 255, 255, 0.62);
+
+      font-size: 0.82rem;
+    }
+
+
+    /* =========================================================
+       ABSTRACT
+       ========================================================= */
+
+    .abstract-text {
+      max-width: 950px;
+      margin: 0 auto;
+    }
+
+    .abstract-text p {
+      margin:
+        0 0 18px;
+
+      color: var(--text-secondary);
+
+      font-size: 1rem;
+      line-height: 1.8;
+
+      text-align: justify;
+    }
+
+    .abstract-text p:last-child {
+      margin-bottom: 0;
+    }
+
+
+    /* =========================================================
+       CONTRIBUTIONS
+       ========================================================= */
+
+    .contribution-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(4, 1fr);
+
+      gap: 18px;
+    }
+
+    .contribution-card {
+      padding: 25px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius:
+        var(--radius-md);
+
+      background:
+        var(--surface);
+
+      box-shadow:
+        var(--shadow-sm);
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .contribution-card:hover {
+      transform:
+        translateY(-4px);
+
+      box-shadow:
+        var(--shadow-md);
+    }
+
+    .contribution-number {
+      display: flex;
+
+      align-items: center;
+      justify-content: center;
+
+      width: 38px;
+      height: 38px;
+
+      margin-bottom: 16px;
+
+      border-radius: 10px;
+
+      background:
+        var(--primary-light);
+
+      color:
+        var(--primary);
+
+      font-size: 0.85rem;
+      font-weight: 800;
+    }
+
+    .contribution-card h3 {
+      margin:
+        0 0 8px;
+
+      font-size: 1.05rem;
+      line-height: 1.3;
+    }
+
+    .contribution-card p {
+      margin: 0;
+
+      color: var(--text-secondary);
+
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+
+    /* =========================================================
+       PAPER
+       ========================================================= */
+
+    .paper-content {
+      display: grid;
+
+      grid-template-columns:
+        1fr 180px;
+
+      align-items: center;
+
+      gap: 35px;
+    }
+
+    .paper-text p {
+      margin: 0;
+
+      color:
+        var(--text-secondary);
+
+      font-size: 0.98rem;
+      line-height: 1.75;
+    }
+
+    .paper-link {
+      display: inline-flex;
+
+      align-items: center;
+
+      gap: 8px;
+
+      margin-top: 18px;
+
+      padding: 10px 16px;
+
+      border-radius: 9px;
+
+      background:
+        var(--primary);
+
+      color: white;
+
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .paper-link:hover {
+      background:
+        var(--primary-dark);
+
+      color: white;
+      text-decoration: none;
+    }
+
+    .pdf-image {
+      width: 160px;
+      height: 160px;
+
+      margin: auto;
+
+      object-fit: contain;
+
+      border-radius: 12px;
+
+      cursor: pointer;
+
+      box-shadow:
+        var(--shadow-sm);
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .pdf-image:hover {
+      transform: scale(1.04);
+
+      box-shadow:
+        var(--shadow-md);
+    }
+
+
+    /* =========================================================
+       RESULTS / EXPERIMENTAL HIGHLIGHTS
+       ========================================================= */
+
+    .results-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(3, 1fr);
+
+      gap: 20px;
+    }
+
+    .result-card {
+      padding:
+        28px 20px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 14px;
+
+      background: white;
+
+      text-align: center;
+
+      box-shadow:
+        var(--shadow-sm);
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .result-card:hover {
+      transform:
+        translateY(-3px);
+
+      box-shadow:
+        var(--shadow-md);
+    }
+
+    .result-value {
+      color:
+        var(--primary);
+
+      font-size:
+        clamp(
+          2rem,
+          5vw,
+          3rem
+        );
+
+      font-weight: 850;
+
+      line-height: 1;
+    }
+
+    .result-label {
+      margin-top: 10px;
+
+      color:
+        var(--text);
+
+      font-weight: 750;
+    }
+
+    .result-description {
+      margin-top: 6px;
+
+      color:
+        var(--text-muted);
+
+      font-size: 0.82rem;
+    }
+
+
+    /* =========================================================
+       SLIDESHOW
+       ========================================================= */
+
+    .slideshow-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .slideshow-wrapper {
+      position: relative;
+
+      width: 100%;
+
+      min-height: 530px;
+
+      overflow: hidden;
+
+      background:
+        var(--surface-alt);
+    }
+
+    .image-slideshow-wrapper {
+      min-height: 600px;
+    }
+
+    .slide {
+      display: none;
+
+      width: 100%;
+
+      min-height: 530px;
+
+      padding: 45px;
+
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    .slide-content {
+      width:
+        min(
+          900px,
+          100%
+        );
+
+      padding: 30px;
+
+      background: white;
+
+      border:
+        1px solid var(--border);
+
+      border-left:
+        5px solid var(--primary);
+
+      border-radius:
+        var(--radius-md);
+
+      box-shadow:
+        var(--shadow-sm);
+    }
+
+    .slide-title {
+      margin-bottom: 18px;
+
+      color:
+        var(--primary);
+
+      font-size: 1.45rem;
+      font-weight: 800;
+
+      text-align: center;
+    }
+
+    .slide-description {
+      color:
+        var(--text-secondary);
+
+      font-size: 0.96rem;
+      line-height: 1.75;
+    }
+
+    .slide-description p {
+      margin:
+        14px 0;
+    }
+
+    .slide-description .lead {
+      color:
+        var(--text);
+
+      font-weight: 650;
+    }
+
+    .equation {
+      margin:
+        22px 0;
+
+      padding: 18px;
+
+      background:
+        #f8fafc;
+
+      border:
+        1px solid var(--border);
+
+      border-left:
+        4px solid var(--primary);
+
+      border-radius: 9px;
+
+      overflow-x: auto;
+
+      text-align: center;
+    }
+
+    .equation-number {
+      display: block;
+
+      margin-top: 8px;
+
+      color: var(--text-muted);
+
+      text-align: right;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .image-slide {
+      display: none;
+
+      width: 100%;
+
+      min-height: 600px;
+
+      padding: 25px;
+
+      align-items: center;
+      justify-content: center;
+    }
+
+    .image-slide.active {
+      display: flex;
+    }
+
+    .image-slide img {
+      width: 100%;
+
+      height: 550px;
+
+      object-fit: contain;
+
+      border-radius: 10px;
+
+      background: white;
+
+      box-shadow:
+        var(--shadow-sm);
+    }
+
+
+    /* =========================================================
+       SLIDESHOW CONTROLS
+       ========================================================= */
+
+    .slideshow-controls {
+      display: flex;
+
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 20px;
+
+      padding:
+        18px 30px;
+
+      background: white;
+
+      border-top:
+        1px solid var(--border);
+    }
+
+    .slide-btn {
+      min-width: 110px;
+
+      padding: 9px 15px;
+
+      border: none;
+
+      border-radius: 8px;
+
+      background:
+        var(--primary);
+
+      color: white;
+
+      cursor: pointer;
+
+      font-size: 0.88rem;
+      font-weight: 700;
+
+      transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .slide-btn:hover:not(:disabled) {
+      background:
+        var(--primary-dark);
+
+      transform:
+        translateY(-1px);
+    }
+
+    .slide-btn:disabled {
+      background:
+        #cbd5e1;
+
+      cursor:
+        not-allowed;
+    }
+
+    .slide-indicators {
+      display: flex;
+
+      justify-content: center;
+      align-items: center;
+
+      gap: 7px;
+
+      flex-wrap: wrap;
+    }
+
+    .indicator {
+      width: 9px;
+      height: 9px;
+
+      border-radius: 50%;
+
+      background:
+        #cbd5e1;
+
+      cursor: pointer;
+
+      transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .indicator:hover {
+      transform:
+        scale(1.25);
+    }
+
+    .indicator.active {
+      background:
+        var(--primary);
+
+      transform:
+        scale(1.2);
+    }
+
+    .slide-counter {
+      padding:
+        0 30px 20px;
+
+      background: white;
+
+      color:
+        var(--text-muted);
+
+      font-size: 0.82rem;
+      font-weight: 700;
+
+      text-align: center;
+    }
+
+
+    /* =========================================================
+       INTERACTIVE DEMO
+       ========================================================= */
+
+    .demo-intro {
+      margin-bottom: 28px;
+
+      color:
+        var(--text-secondary);
+
+      text-align: center;
+    }
+
+    .pose-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, 1fr);
+
+      gap: 20px;
+    }
+
+    .pose-card {
+      padding: 22px;
+
+      background:
+        #f8fafc;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 13px;
+    }
+
+    .pose-card-header {
+      display: flex;
+
+      align-items: center;
+
+      gap: 10px;
+
+      margin-bottom: 18px;
+    }
+
+    .pose-icon {
+      display: flex;
+
+      align-items: center;
+      justify-content: center;
+
+      width: 35px;
+      height: 35px;
+
+      border-radius: 9px;
+
+      background:
+        var(--primary-light);
+
+      color:
+        var(--primary);
+
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .pose-card h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .pose-fields {
+      display: grid;
+
+      grid-template-columns:
+        repeat(3, 1fr);
+
+      gap: 10px;
+    }
+
+    .pose-field {
+      display: flex;
+      flex-direction: column;
+
+      gap: 5px;
+    }
+
+    .pose-field label {
+      color:
+        var(--text-muted);
+
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .pose-field input {
+      width: 100%;
+
+      padding:
+        10px 11px;
+
+      border:
+        1px solid #cbd5e1;
+
+      border-radius: 8px;
+
+      background: white;
+
+      color:
+        var(--text);
+
+      outline: none;
+
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .pose-field input:focus {
+      border-color:
+        var(--primary);
+
+      box-shadow:
+        0 0 0 3px
+        rgba(37, 99, 235, 0.1);
+    }
+
+    .demo-submit {
+      display: flex;
+      justify-content: center;
+
+      margin-top: 28px;
+    }
+
+    #start-btn {
+      display: inline-flex;
+
+      align-items: center;
+      justify-content: center;
+
+      min-width: 220px;
+
+      padding:
+        13px 25px;
+
+      border: none;
+
+      border-radius: 10px;
+
+      background:
+        var(--primary);
+
+      color: white;
+
+      cursor: pointer;
+
+      font-size: 0.98rem;
+      font-weight: 750;
+
+      box-shadow:
+        0 8px 20px
+        rgba(37, 99, 235, 0.2);
+
+      transition:
+        background 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    #start-btn:hover {
+      background:
+        var(--primary-dark);
+
+      transform:
+        translateY(-2px);
+
+      box-shadow:
+        0 12px 25px
+        rgba(37, 99, 235, 0.25);
+    }
+
+
+    /* =========================================================
+       VIDEO SECTIONS
+       ========================================================= */
+
+    .video-box {
+      padding: 36px;
+
+      background: white;
+
+      border:
+        1px solid var(--border);
+
+      border-radius:
+        var(--radius-lg);
+
+      box-shadow:
+        var(--shadow-md);
+    }
+
+    .video-box h2,
+    .video-box h3 {
+      margin: 0;
+      text-align: center;
+    }
+
+    .video-box > p {
+      max-width: 750px;
+
+      margin:
+        10px auto 25px;
+
+      color:
+        var(--text-secondary);
+
+      text-align: center;
+    }
+
+    .video-wrapper {
+      overflow: hidden;
+
+      border-radius: 12px;
+
+      background: #000;
+
+      box-shadow:
+        var(--shadow-sm);
+    }
+
+    .video-wrapper video {
+      display: block;
+
+      width: 100%;
+
+      height: auto;
+
+      aspect-ratio: 16 / 9;
+
+      object-fit: contain;
+
+      background: #000;
+    }
+
+
+    /* =========================================================
+       COMPARISON
+       ========================================================= */
+
+    .comparison-videos {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, 1fr);
+
+      gap: 24px;
+
+      margin-top: 25px;
+    }
+
+    .comparison-video {
+      padding: 15px;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 13px;
+
+      background:
+        #f8fafc;
+    }
+
+    .comparison-video h4 {
+      margin:
+        0 0 12px;
+
+      color:
+        var(--text);
+
+      text-align: center;
+
+      font-size: 1rem;
+    }
+
+    .comparison-video video {
+      display: block;
+
+      width: 100%;
+
+      aspect-ratio: 16 / 9;
+
+      object-fit: contain;
+
+      border-radius: 9px;
+
+      background: #000;
+    }
+
+    .result-plot {
+      display: block;
+
+      width: 100%;
+
+      max-height: 500px;
+
+      margin:
+        28px auto 0;
+
+      object-fit: contain;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 10px;
+
+      background: white;
+    }
+
+
+    /* =========================================================
+       APPLICATIONS
+       ========================================================= */
+
+    .application-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, 1fr);
+
+      gap: 24px;
+    }
+
+    .application-card {
+      overflow: hidden;
+
+      background: white;
+
+      border:
+        1px solid var(--border);
+
+      border-radius:
+        var(--radius-lg);
+
+      box-shadow:
+        var(--shadow-md);
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .application-card:hover {
+      transform:
+        translateY(-3px);
+
+      box-shadow:
+        var(--shadow-lg);
+    }
+
+    /*
+     * Pickup and Delivery is centered underneath
+     * the two pursuit cards.
+     */
+    .pickup-card {
+      grid-column: 1 / -1;
+
+      width:
+        calc(50% - 12px);
+
+      justify-self: center;
+    }
+
+    .application-content {
+      padding: 28px;
+    }
+
+    .application-content h3 {
+      margin:
+        0 0 8px;
+
+      color:
+        var(--primary);
+
+      font-size: 1.35rem;
+    }
+
+    .application-content p {
+      margin: 0;
+
+      color:
+        var(--text-secondary);
+
+      font-size: 0.92rem;
+    }
+
+    .application-video {
+      display: block;
+
+      width: 100%;
+
+      aspect-ratio: 16 / 9;
+
+      object-fit: contain;
+
+      background: #000;
+    }
+
+
+    /* =========================================================
+       HARDWARE
+       ========================================================= */
+
+    .hardware-video {
+      margin-top: 25px;
+    }
+
+
+    /* =========================================================
+       FOOTER
+       ========================================================= */
+
+    footer {
+      margin-top: 90px;
+
+      padding:
+        45px 20px;
+
+      background:
+        #0f172a;
+
+      color: white;
+
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-size: 1.5rem;
+      font-weight: 850;
+    }
+
+    .footer-description {
+      max-width: 600px;
+
+      margin:
+        10px auto 20px;
+
+      color:
+        #94a3b8;
+
+      font-size: 0.9rem;
+    }
+
+    .footer-links {
+      display: flex;
+
+      justify-content: center;
+      flex-wrap: wrap;
+
+      gap: 20px;
+    }
+
+    .footer-links a {
+      color:
+        #cbd5e1;
+
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .footer-links a:hover {
+      color: white;
+    }
+
+    .footer-copy {
+      margin-top: 25px;
+
+      color:
+        #64748b;
+
+      font-size: 0.78rem;
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @media (max-width: 950px) {
+
+      .contribution-grid {
+        grid-template-columns:
+          repeat(2, 1fr);
+      }
+
+      .paper-content {
+        grid-template-columns: 1fr;
+      }
+
+      .pdf-image {
+        margin:
+          0 auto;
+      }
+
+      .results-grid {
+        grid-template-columns:
+          repeat(3, 1fr);
+      }
+
+      .nav-container {
+        gap: 15px;
+      }
+
+      .nav-links {
+        gap: 14px;
+      }
+
+      .pickup-card {
+        width: 70%;
+      }
+
+    }
+
+
+    @media (max-width: 750px) {
+
+      .nav-container {
+        min-height: auto;
+
+        padding:
+          13px 0;
+
+        flex-direction: column;
+
+        gap: 10px;
+      }
+
+      .nav-links {
+        justify-content: center;
+      }
+
+      .hero {
+        min-height: 500px;
+      }
+
+      .section {
+        margin: 50px 0;
+      }
+
+      .section-card,
+      .video-box {
+        padding: 25px;
+      }
+
+      .pose-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-videos,
+      .application-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .slideshow-controls {
+        padding: 15px;
+      }
+
+      .slide {
+        padding: 25px;
+      }
+
+      .slide-content {
+        padding: 22px;
+      }
+
+      .image-slide {
+        padding: 15px;
+      }
+
+      .image-slide img {
+        height: 450px;
+      }
+
+      .pickup-card {
+        grid-column: auto;
+
+        width: 100%;
+
+        justify-self: stretch;
+      }
+
+    }
+
+
+    @media (max-width: 550px) {
+
+      main {
+        width:
+          min(
+            100% - 24px,
+            var(--max-width)
+          );
+      }
+
+      .hero {
+        margin-top: 15px;
+        border-radius: 20px;
+      }
+
+      .hero-content {
+        width: 100%;
+
+        padding:
+          55px 18px;
+      }
+
+      .hero h1 {
+        font-size: 2.45rem;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .hero-button {
+        width: 100%;
+      }
+
+      .contribution-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-card,
+      .video-box {
+        padding: 20px;
+        border-radius: 15px;
+      }
+
+      .pose-fields {
+        grid-template-columns: 1fr;
+      }
+
+      .slideshow-wrapper {
+        min-height: 600px;
+      }
+
+      .slide {
+        min-height: 600px;
+        padding: 15px;
+      }
+
+      .image-slideshow-wrapper {
+        min-height: 400px;
+      }
+
+      .image-slide {
+        min-height: 400px;
+      }
+
+      .image-slide img {
+        height: 360px;
+      }
+
+      .slideshow-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .slide-indicators {
+        order: 3;
+        width: 100%;
+      }
+
+      .abstract-text p {
+        text-align: left;
+      }
+
+      .nav-links {
+        gap:
+          9px 15px;
+      }
+
+      .nav-links a {
+        font-size: 0.78rem;
+      }
+
+    }
+
+
+    /* =========================================================
+       ACCESSIBILITY
+       ========================================================= */
+
+    :focus-visible {
+      outline:
+        3px solid
+        rgba(37, 99, 235, 0.35);
+
+      outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        transition-duration:
+          0.01ms !important;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+  <!-- =======================================================
+       NAVIGATION
+       ======================================================= -->
+
+  <nav class="navbar">
+
+    <div class="nav-container">
+
+      <a
+        class="nav-logo"
+        href="#top">
+
+        GBPTA
+
+      </a>
+
+
+      <div class="nav-links">
+
+        <a href="#overview">
+          Overview
+        </a>
+
+        <a href="#paper">
+          Paper
+        </a>
+
+        <a href="#results">
+          Results
+        </a>
+
+        <a href="#scenario">
+          Visualization
+        </a>
+
+        <a href="#method">
+          Method
+        </a>
+
+        <a href="#demo">
+          Demo
+        </a>
+
+        <a href="#experiments">
+          Experiments
+        </a>
+
+        <a
+          class="nav-paper"
+          href="https://github.com/GBPTA/demo/blob/main/GBPTA-with-examples.pdf"
+          target="_blank"
+          rel="noopener noreferrer">
+
+          Paper
+
+        </a>
+
+      </div>
+
+    </div>
+
+  </nav>
+
+
+  <main id="top">
+
+
+    <!-- =======================================================
+         HERO
+         ======================================================= -->
+
+    <section class="hero">
+
+      <div class="hero-content">
+
+        <div class="hero-badge">
+          Multi-Robot Distributed Task Allocation
+        </div>
+
+
+        <h1>
+
+          Gaussian Belief Propagation
+
+          <span class="hero-title-secondary">
+
+            Based Task Allocation
+
+          </span>
+
+        </h1>
+
+
+        <p class="hero-description">
+
+          GBPTA is a fully distributed framework for multi-robot
+          multi-task allocation using Gaussian Belief Propagation,
+          designed to coordinate robots under uncertainty and
+          communication constraints.
+
+        </p>
+
+
+        <div class="hero-buttons">
+
+          <a
+            class="hero-button primary"
+            href="#demo">
+
+            Try Interactive Demo
+
+          </a>
+
+
+          <a
+            class="hero-button secondary"
+            href="https://github.com/GBPTA/demo/blob/main/GBPTA-with-examples.pdf"
+            target="_blank"
+            rel="noopener noreferrer">
+
+            Read the Paper
+
+          </a>
+
+        </div>
+
+
+        <div class="hero-meta">
+
+          Multi-Robot Systems
+          &nbsp;·&nbsp;
+          Task Allocation
+          &nbsp;·&nbsp;
+          Gaussian Belief Propagation
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         OVERVIEW
+         ======================================================= -->
+
+    <section
+      class="section"
+      id="overview">
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Overview
+        </span>
+
+        <h2>
+          Distributed Task Allocation Under Uncertainty
+        </h2>
+
+        <p>
+          GBPTA formulates multi-robot task allocation as a
+          distributed inference problem using Gaussian Belief
+          Propagation.
+        </p>
+
+      </div>
+
+
+      <div class="section-card">
+
+        <div class="abstract-text">
+
+          <p>
+
+            Multi-robot systems are used in various fields such as
+            autonomous transportation and delivery. A key component
+            in enabling these systems is task allocation, which
+            becomes significantly more complex when coordinating
+            multiple robots. For solving the task allocation problem,
+            the challenges extend beyond those faced by a single
+            robot, requiring robust coordination strategies. Moreover,
+            a critical factor in evaluating multi-robot systems is
+            their ability to operate reliably in real-world, dynamic
+            environments. In many scenarios, ground-truth information
+            about robots and tasks may be unavailable, demanding
+            methods that can function with noisy observations and
+            handle substantial uncertainty.
+
+          </p>
+
+
+          <p>
+
+            In this paper, we propose GBPTA, a fully distributed
+            framework for the multi-robot multi-task allocation
+            problem, using Gaussian Belief Propagation for solving
+            the one-to-one assignment problem using an end-to-end
+            factor-graph-based approach, where all steps are
+            represented as factors. The proposed framework is applied
+            to two scenarios: multi-robot pursuit-evasion and package
+            pickup and delivery. GBPTA can operate in different
+            environments and under varying communication radii.
+            Moreover, the proposed approach can handle problems in
+            which multiple features must be considered for task
+            allocation. Through various simulations and hardware
+            experiments, we show that GBPTA achieves near-optimal
+            task assignments. GBPTA improves assignment utility,
+            defined as the negative total distance between robots and
+            tasks, by 23.95% over distributed Hungarian and reduces
+            makespan by 71.57% over DANCeRS.
+
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         KEY FEATURES
+         ======================================================= -->
+
+    <section class="section">
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Key Features
+        </span>
+
+        <h2>
+          What GBPTA Provides
+        </h2>
+
+      </div>
+
+
+      <div class="contribution-grid">
+
+
+        <div class="contribution-card">
+
+          <div class="contribution-number">
+            01
+          </div>
+
+          <h3>
+            Fully Distributed
+          </h3>
+
+          <p>
+
+            Robots collaboratively solve the task allocation
+            problem without relying on a centralized coordinator.
+
+          </p>
+
+        </div>
+
+
+        <div class="contribution-card">
+
+          <div class="contribution-number">
+            02
+          </div>
+
+          <h3>
+            One-to-One Assignment
+          </h3>
+
+          <p>
+
+            Differentiable factors encourage robots to select
+            distinct tasks and avoid assignment conflicts.
+
+          </p>
+
+        </div>
+
+
+        <div class="contribution-card">
+
+          <div class="contribution-number">
+            03
+          </div>
+
+          <h3>
+            Uncertainty Handling
+          </h3>
+
+          <p>
+
+            Gaussian Belief Propagation allows the framework to
+            operate using noisy observations and uncertain states.
+
+          </p>
+
+        </div>
+
+
+        <div class="contribution-card">
+
+          <div class="contribution-number">
+            04
+          </div>
+
+          <h3>
+            Multiple Scenarios
+          </h3>
+
+          <p>
+
+            The framework is demonstrated using pursuit-evasion,
+            pickup and delivery, simulation, and hardware experiments.
+
+          </p>
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         PAPER AND NUMERICAL EXAMPLES
+         ======================================================= -->
+
+    <section
+      class="section"
+      id="paper">
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Publication
+        </span>
+
+        <h2>
+          Paper and Numerical Examples
+        </h2>
+
+      </div>
+
+
+      <div class="section-card">
+
+        <div class="paper-content">
+
+
+          <div class="paper-text">
+
+            <p>
+
+              The paper and numerical examples are available in the
+              PDF below. The numerical examples are highlighted in
+              blue-shaded boxes.
+
+            </p>
+
+
+            <a
+              class="paper-link"
+              href="https://github.com/GBPTA/demo/blob/main/GBPTA-with-examples.pdf"
+              target="_blank"
+              rel="noopener noreferrer">
+
+              Open Paper PDF →
+
+            </a>
+
+          </div>
+
+
+          <a
+            href="https://github.com/GBPTA/demo/blob/main/GBPTA-with-examples.pdf"
+            target="_blank"
+            rel="noopener noreferrer">
+
+            <img
+              class="pdf-image"
+              src="123.png"
+              alt="Paper PDF preview">
+
+          </a>
+
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         EXPERIMENTAL HIGHLIGHTS
+         MOVED TO AFTER PAPER
+         ======================================================= -->
+
+    <section
+      class="section"
+      id="results">
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Results
+        </span>
+
+        <h2>
+          Experimental Highlights
+        </h2>
+
+        <p>
+
+          Selected quantitative results from the GBPTA evaluation.
+
+        </p>
+
+      </div>
+
+
+      <div class="results-grid">
+
+
+        <div class="result-card">
+
+          <div class="result-value">
+            23.95%
+          </div>
+
+          <div class="result-label">
+            Assignment Utility Improvement
+          </div>
+
+          <div class="result-description">
+
+            Compared with the distributed Hungarian method.
+
+          </div>
+
+        </div>
+
+
+        <div class="result-card">
+
+          <div class="result-value">
+            71.57%
+          </div>
+
+          <div class="result-label">
+            Makespan Reduction
+          </div>
+
+          <div class="result-description">
+
+            Compared with the evaluated DANCeRS experiment.
+
+          </div>
+
+        </div>
+
+
+        <div class="result-card">
+
+          <div class="result-value">
+            63 s
+          </div>
+
+          <div class="result-label">
+            Example Task Completion
+          </div>
+
+          <div class="result-description">
+
+            Demonstrated in the real-world experiment.
+
+          </div>
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         EXAMPLE SCENARIO / VISUALIZATION
+         ======================================================= -->
+
+    <section
+      class="section"
+      id="scenario">
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Visualization
+        </span>
+
+        <h2>
+          Example Scenario
+        </h2>
+
+        <p>
+
+          An example task allocation scenario illustrating the
+          evolution of robot-task assignments.
+
+        </p>
+
+      </div>
+
+
+      <div class="section-card slideshow-card">
+
+
+        <div class="image-slideshow-wrapper">
+
+
+          <div class="image-slide active">
+
+            <img
+              src="images/1.png"
+              alt="Example scenario step 1">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="images/2.png"
+              alt="Example scenario step 2">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="images/3.png"
+              alt="Example scenario step 3">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="images/4.png"
+              alt="Example scenario step 4">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="images/5.png"
+              alt="Example scenario step 5">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="images/6.png"
+              alt="Example scenario step 6">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="images/7.png"
+              alt="Example scenario step 7">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="images/8.png"
+              alt="Example scenario step 8">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="images/9.png"
+              alt="Example scenario step 9">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="images/10.png"
+              alt="Example scenario step 10">
+
+          </div>
+
+
+        </div>
+
+
+        <div class="slideshow-controls">
+
+
+          <button
+            class="slide-btn"
+            id="imgPrevBtn"
+            type="button">
+
+            ← Previous
+
+          </button>
+
+
+          <div
+            class="slide-indicators"
+            id="imageIndicators">
+
+            <span
+              class="indicator active"
+              data-slide="0"></span>
+
+            <span
+              class="indicator"
+              data-slide="1"></span>
+
+            <span
+              class="indicator"
+              data-slide="2"></span>
+
+            <span
+              class="indicator"
+              data-slide="3"></span>
+
+            <span
+              class="indicator"
+              data-slide="4"></span>
+
+            <span
+              class="indicator"
+              data-slide="5"></span>
+
+            <span
+              class="indicator"
+              data-slide="6"></span>
+
+            <span
+              class="indicator"
+              data-slide="7"></span>
+
+            <span
+              class="indicator"
+              data-slide="8"></span>
+
+            <span
+              class="indicator"
+              data-slide="9"></span>
+
+          </div>
+
+
+          <button
+            class="slide-btn"
+            id="imgNextBtn"
+            type="button">
+
+            Next →
+
+          </button>
+
+
+        </div>
+
+
+        <div class="slide-counter">
+
+          <span id="imgCurrentSlide">
+            1
+          </span>
+
+          /
+
+          <span id="imgTotalSlides">
+            10
+          </span>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         METHOD
+         ======================================================= -->
+
+    <section
+      class="section"
+      id="method">
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Method
+        </span>
+
+        <h2>
+          GBPTA Factors
+        </h2>
+
+        <p>
+
+          The task allocation problem is represented using
+          differentiable factors within a Gaussian Belief Propagation
+          framework.
+
+        </p>
+
+      </div>
+
+
+      <div class="section-card slideshow-card">
+
+
+        <div class="slideshow-wrapper">
+
+
+          <!-- SLIDE 1 -->
+
+          <div class="slide active">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                Task Evaluation Factor
+              </div>
+
+
+              <div class="slide-description">
+
+                <p class="lead">
+
+                  The aim of the task evaluation factor is to assess
+                  the state of tasks for robot $i$ at time $t$.
+                  The measurement function of this factor is defined as:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$h^c(\mathbf{c}^i_t) = \mathbf{c}^i_t$$
+
+                </div>
+
+
+                <p>
+
+                  $\mathbf{z}^{c_i}$ denotes the vector representing
+                  the observed state of tasks for robot $i$, and the
+                  residual is computed using the Gaussian equation.
+
+                </p>
+
+
+                <p>
+
+                  The Jacobian of $h^c$ can be computed as follows:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$J^c =
+                  \frac{\partial h_c}
+                  {\partial \mathbf{c}^i_t}
+                  =
+                  \mathbf{I}_{N_q}$$
+
+                </div>
+
+
+                <p>
+
+                  where $\mathbf{I}_{N_q}$ represents the
+                  $N_q \times N_q$ identity matrix.
+
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SLIDE 2 -->
+
+          <div class="slide">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                Regret Factor
+              </div>
+
+
+              <div class="slide-description">
+
+                <p class="lead">
+
+                  The regret factor evaluates the cost associated
+                  with task assignment decisions for each robot in
+                  the system.
+
+                </p>
+
+
+                <p>
+
+                  $\mathbf{r}^{i}_t$ represents the associated regret
+                  of performing tasks for robot $i$, which is a vector,
+                  and each element represents the associated regret of
+                  performing a specific task.
+
+                </p>
+
+
+                <p>
+
+                  The observation $\mathbf{z}^{r_i}$ defines the regret
+                  associated with the selection of each task.
+
+                </p>
+
+
+                <p>
+
+                  The Jacobian of the regret factor is:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\mathbf{J^r}
+                  =
+                  \frac{\partial h^{r}(\mathbf{r}^{i}_{t})}
+                  {\partial \mathbf{r}^{i}_{t}}
+                  =
+                  \mathbf{I}_{N_q}$$
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SLIDE 3 -->
+
+          <div class="slide">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                Task Collision Avoidance Factor
+              </div>
+
+
+              <div class="slide-description">
+
+                <p class="lead">
+
+                  This factor is defined to make sure that two robots
+                  do not select the same task.
+
+                </p>
+
+
+                <p>
+
+                  Let $\mathbf{u}$ denote the sum of the state and
+                  regret of tasks for each robot:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\mathbf{u}^1_t =
+                  \mathbf{c}^i_t + \mathbf{r}^i_t$$
+
+                  $$\mathbf{u}^2_t =
+                  \mathbf{c}^j_t + \mathbf{r}^j_t$$
+
+                </div>
+
+
+                <p>
+                  and
+                </p>
+
+
+                <div class="equation">
+
+                  $$\boldsymbol{\pi}^i_t =
+                  \operatorname{SM}(\mathbf{u}^1_t)$$
+
+                  $$\boldsymbol{\pi}^j_t =
+                  \operatorname{SM}(\mathbf{u}^2_t)$$
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SLIDE 4 -->
+
+          <div class="slide">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                Softmin Function
+              </div>
+
+
+              <div class="slide-description">
+
+                <p>
+
+                  Given a vector
+                  $\mathbf{x} =
+                  [x_1,x_2,\dots,x_n]^\top$,
+                  SM is defined as:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\operatorname{SM}(x_i)
+                  =
+                  \frac{e^{-x_i}}
+                  {\sum_{j=1}^n e^{-x_j}}$$
+
+                </div>
+
+
+                <p>
+
+                  which represents the softmin weights for
+                  $\mathbf{x}$.
+
+                </p>
+
+
+                <p>
+
+                  The softmin function assigns higher probability to
+                  tasks with lower combined state and regret,
+                  resulting in task selection probabilities
+                  $\boldsymbol{\pi}^i_t$ and
+                  $\boldsymbol{\pi}^j_t$.
+
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SLIDE 5 -->
+
+          <div class="slide">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                Softmin Weights Similarity
+              </div>
+
+
+              <div class="slide-description">
+
+                <p class="lead">
+
+                  Similarity of softmin weights is captured by the
+                  match score:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\kappa^{ij}_t
+                  =
+                  (\boldsymbol{\pi}^i_t)^\top
+                  \boldsymbol{\pi}^j_t$$
+
+                </div>
+
+
+                <p>
+
+                  which is high when both robots are likely to select
+                  the same task.
+
+                </p>
+
+
+                <p>
+
+                  To softly allocate penalty between the two robots,
+                  we define element-wise softmin weights as:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\mathbf{w}^1_t
+                  =
+                  \kappa^{ij}_t
+                  \cdot
+                  \frac{e^{\beta \mathbf{u}^1_t}}
+                  {e^{\beta \mathbf{u}^1_t}
+                  +
+                  e^{\beta \mathbf{u}^2_t}}$$
+
+                  $$\mathbf{w}^2_t
+                  =
+                  \kappa^{ij}_t
+                  \cdot
+                  \frac{e^{\beta \mathbf{u}^2_t}}
+                  {e^{\beta \mathbf{u}^1_t}
+                  +
+                  e^{\beta \mathbf{u}^2_t}}$$
+
+                </div>
+
+
+                <p>
+
+                  where $\beta$ controls the smoothness of the
+                  approximation.
+
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SLIDE 6 -->
+
+          <div class="slide">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                State Update Equation
+              </div>
+
+
+              <div class="slide-description">
+
+                <p class="lead">
+
+                  States are updated utilizing the following
+                  measurement equation:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$h^{ct_{ij}}_t
+                  =
+                  p
+                  \cdot
+                  \begin{bmatrix}
+                  \mathbf{w}^1_t \\
+                  \mathbf{w}^2_t
+                  \end{bmatrix}
+                  -
+                  \begin{bmatrix}
+                  \mathbf{c}^i_t \\
+                  \mathbf{c}^j_t
+                  \end{bmatrix}$$
+
+                </div>
+
+
+                <p>
+
+                  This equation defines how the collision avoidance
+                  factor updates the states based on the element-wise
+                  softmin weights and current task state vectors.
+
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SLIDE 7 -->
+
+          <div class="slide">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                Assignment Factor
+              </div>
+
+
+              <div class="slide-description">
+
+                <p class="lead">
+
+                  In this factor, a softmin indicating the associated
+                  regret and state of each task is measured.
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$h^a(\boldsymbol{c}^{i}_t,
+                  \boldsymbol{a}^{i}_t)
+                  =
+                  \frac{e^{-\beta \boldsymbol{c}^i_t}}
+                  {\sum_{j=1}^{n}
+                  e^{-\beta c^{ij}_t}}
+                  -
+                  \boldsymbol{a}^i_t$$
+
+                </div>
+
+
+                <p>
+
+                  Let $\boldsymbol{\psi}$ be defined as:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\boldsymbol{\psi}
+                  =
+                  \frac{e^{-\beta \boldsymbol{c}^i_t}}
+                  {\sum_{j=1}^{n}
+                  e^{-\beta c^{ij}_t}}$$
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SLIDE 8 -->
+
+          <div class="slide">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                Assignment Factor Jacobian
+              </div>
+
+
+              <div class="slide-description">
+
+                <p>
+
+                  Let
+                  $\psi^k =
+                  \frac{e^{-\beta c^{ik}_t}}
+                  {\sum_{j=1}^{n}e^{-\beta c^{ij}_t}}$
+                  denote the $k$-th component.
+
+                </p>
+
+
+                <p>
+
+                  The partial derivative of the softmin component is:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\frac{\partial u^k}
+                  {\partial c^{il}_t}
+                  =
+                  \beta u^k
+                  (\delta^{kl}-u^k)$$
+
+                </div>
+
+
+                <p>
+
+                  where $\delta^{kl}$ is the Kronecker delta.
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\delta^{ij}
+                  =
+                  \begin{cases}
+                  1 & \text{if } i=j \\
+                  0 & \text{if } i\ne j
+                  \end{cases}$$
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SLIDE 9 -->
+
+          <div class="slide">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                Assignment Factor Full Jacobian
+              </div>
+
+
+              <div class="slide-description">
+
+                <p>
+
+                  The full Jacobian matrix with respect to
+                  $\boldsymbol{c}^i_t$ is expressed as:
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\frac{\partial h^a}
+                  {\partial \boldsymbol{c}^i_t}
+                  =
+                  \beta
+                  \left(
+                  \operatorname{diag}(\boldsymbol{\psi})
+                  -
+                  \boldsymbol{\psi}
+                  \boldsymbol{\psi}^{\top}
+                  \right)$$
+
+                </div>
+
+
+                <p>
+
+                  where
+                  $\operatorname{diag}(\boldsymbol{\psi})$
+                  is the diagonal matrix whose entries are the
+                  components of $\boldsymbol{\psi}$.
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$\frac{\partial h^a}
+                  {\partial \boldsymbol{a}^i_t}
+                  =
+                  -\mathbf{I}$$
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- SLIDE 10 -->
+
+          <div class="slide">
+
+            <div class="slide-content">
+
+              <div class="slide-title">
+                Convergence Factor
+              </div>
+
+
+              <div class="slide-description">
+
+                <p>
+
+                  The convergence factor measures the degree of
+                  convergence, or overlap, in task assignment vectors
+                  in a differentiable way.
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$h^{v_{ij}}
+                  (\mathbf{a}^i_t, \mathbf{a}^j_t)
+                  = -v^{ij}_t
+                  +
+                  (\mathbf{a}^i_t)^\top
+                  \mathbf{a}^j_t$$
+
+                </div>
+
+
+                <!-- <p>
+
+                  If $h^{v}$ is near zero, it means that the task
+                  assignment vectors are close to orthogonal,
+                  implying that robots are selecting distinct tasks.
+
+                </p>
+
+
+                <div class="equation">
+
+                  $$
+                  \frac{\partial h^{v}}
+                  {\partial
+                  \begin{bmatrix}
+                  \boldsymbol{a}^1_t \\
+                  \vdots \\
+                  \boldsymbol{a}^{N_p}_t \\
+                  v_t
+                  \end{bmatrix}}
+                  =
+                  \begin{bmatrix}
+                  \sum_{j\ne1}
+                  (\boldsymbol{a}^j_t)^\top \\
+                  \sum_{j\ne2}
+                  (\boldsymbol{a}^j_t)^\top \\
+                  \vdots \\
+                  \sum_{j\ne N_p}
+                  (\boldsymbol{a}^j_t)^\top \\
+                  -1
+                  \end{bmatrix}.
+                  $$
+
+                </div> -->
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+        </div>
+
+
+        <div class="slideshow-controls">
+
+
+          <button
+            class="slide-btn"
+            id="prevBtn"
+            type="button">
+
+            ← Previous
+
+          </button>
+
+
+          <div
+            class="slide-indicators"
+            id="factorIndicators">
+
+            <span
+              class="indicator active"
+              data-slide="0"></span>
+
+            <span
+              class="indicator"
+              data-slide="1"></span>
+
+            <span
+              class="indicator"
+              data-slide="2"></span>
+
+            <span
+              class="indicator"
+              data-slide="3"></span>
+
+            <span
+              class="indicator"
+              data-slide="4"></span>
+
+            <span
+              class="indicator"
+              data-slide="5"></span>
+
+            <span
+              class="indicator"
+              data-slide="6"></span>
+
+            <span
+              class="indicator"
+              data-slide="7"></span>
+
+            <span
+              class="indicator"
+              data-slide="8"></span>
+
+            <span
+              class="indicator"
+              data-slide="9"></span>
+
+          </div>
+
+
+          <button
+            class="slide-btn"
+            id="nextBtn"
+            type="button">
+
+            Next →
+
+          </button>
+
+
+        </div>
+
+
+        <div class="slide-counter">
+
+          <span id="currentSlide">
+            1
+          </span>
+
+          /
+
+          <span id="totalSlides">
+            10
+          </span>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         INTERACTIVE DEMO
+         ======================================================= -->
+
+    <section
+      class="section"
+      id="demo">
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Interactive Demo
+        </span>
+
+        <h2>
+          Run a GBPTA Task Allocation Scenario
+        </h2>
+
+        <p>
+
+          Configure the initial poses of robots and tasks and start
+          the visualization.
+
+        </p>
+
+      </div>
+
+
+      <div class="section-card">
+
+        <p class="demo-intro">
+
+          Enter the initial $x$, $y$, and $\theta$ values for each
+          robot and task.
+
+        </p>
+
+
+        <form id="form-section">
+
+
+          <div class="pose-grid">
+
+
+            <div class="pose-card">
+
+              <div class="pose-card-header">
+
+                <div class="pose-icon">
+                  T1
+                </div>
+
+                <h3>
+                  Task 1
+                </h3>
+
+              </div>
+
+
+              <div class="pose-fields">
+
+                <div class="pose-field">
+
+                  <label for="task1_x">
+                    X
+                  </label>
+
+                  <input
+                    type="number"
+                    id="task1_x"
+                    step="any"
+                    value="0">
+
+                </div>
+
+
+                <div class="pose-field">
+
+                  <label for="task1_y">
+                    Y
+                  </label>
+
+                  <input
+                    type="number"
+                    id="task1_y"
+                    step="any"
+                    value="0">
+
+                </div>
+
+
+                <div class="pose-field">
+
+                  <label for="task1_theta">
+                    θ
+                  </label>
+
+                  <input
+                    type="number"
+                    id="task1_theta"
+                    step="any"
+                    value="0">
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="pose-card">
+
+              <div class="pose-card-header">
+
+                <div class="pose-icon">
+                  T2
+                </div>
+
+                <h3>
+                  Task 2
+                </h3>
+
+              </div>
+
+
+              <div class="pose-fields">
+
+                <div class="pose-field">
+
+                  <label for="task2_x">
+                    X
+                  </label>
+
+                  <input
+                    type="number"
+                    id="task2_x"
+                    step="any"
+                    value="200">
+
+                </div>
+
+
+                <div class="pose-field">
+
+                  <label for="task2_y">
+                    Y
+                  </label>
+
+                  <input
+                    type="number"
+                    id="task2_y"
+                    step="any"
+                    value="0">
+
+                </div>
+
+
+                <div class="pose-field">
+
+                  <label for="task2_theta">
+                    θ
+                  </label>
+
+                  <input
+                    type="number"
+                    id="task2_theta"
+                    step="any"
+                    value="0">
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="pose-card">
+
+              <div class="pose-card-header">
+
+                <div class="pose-icon">
+                  R1
+                </div>
+
+                <h3>
+                  Robot 1
+                </h3>
+
+              </div>
+
+
+              <div class="pose-fields">
+
+                <div class="pose-field">
+
+                  <label for="robot1_x">
+                    X
+                  </label>
+
+                  <input
+                    type="number"
+                    id="robot1_x"
+                    step="any"
+                    value="180">
+
+                </div>
+
+
+                <div class="pose-field">
+
+                  <label for="robot1_y">
+                    Y
+                  </label>
+
+                  <input
+                    type="number"
+                    id="robot1_y"
+                    step="any"
+                    value="200">
+
+                </div>
+
+
+                <div class="pose-field">
+
+                  <label for="robot1_theta">
+                    θ
+                  </label>
+
+                  <input
+                    type="number"
+                    id="robot1_theta"
+                    step="any"
+                    value="0">
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="pose-card">
+
+              <div class="pose-card-header">
+
+                <div class="pose-icon">
+                  R2
+                </div>
+
+                <h3>
+                  Robot 2
+                </h3>
+
+              </div>
+
+
+              <div class="pose-fields">
+
+                <div class="pose-field">
+
+                  <label for="robot2_x">
+                    X
+                  </label>
+
+                  <input
+                    type="number"
+                    id="robot2_x"
+                    step="any"
+                    value="200">
+
+                </div>
+
+
+                <div class="pose-field">
+
+                  <label for="robot2_y">
+                    Y
+                  </label>
+
+                  <input
+                    type="number"
+                    id="robot2_y"
+                    step="any"
+                    value="200">
+
+                </div>
+
+
+                <div class="pose-field">
+
+                  <label for="robot2_theta">
+                    θ
+                  </label>
+
+                  <input
+                    type="number"
+                    id="robot2_theta"
+                    step="any"
+                    value="0">
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+
+          <div class="demo-submit">
+
+            <button
+              id="start-btn"
+              type="submit">
+
+              ▶ Start Animation
+
+            </button>
+
+          </div>
+
+
+        </form>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         REAL-WORLD EXPERIMENT COMPARISON
+         ======================================================= -->
+
+    <section
+      class="section"
+      id="experiments">
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Experiments
+        </span>
+
+        <h2>
+          Real-World Experiments Comparison
+        </h2>
+
+        <p>
+
+          Comparison of task allocation behavior using GBPTA and
+          DANCeRS in a real-world robot experiment.
+
+        </p>
+
+      </div>
+
+
+      <div class="video-box">
+
+
+        <div class="comparison-videos">
+
+
+          <div class="comparison-video">
+
+            <h4>
+              GBPTA
+            </h4>
+
+
+            <video
+              controls
+              playsinline
+              muted>
+
+              <source
+                src="GBPTA_8.mp4"
+                type="video/mp4">
+
+              Your browser does not support the video tag.
+
+            </video>
+
+          </div>
+
+
+          <div class="comparison-video">
+
+            <h4>
+              DANCeRS
+            </h4>
+
+
+            <video
+              controls
+              playsinline
+              muted>
+
+              <source
+                src="DANCeRS.mp4"
+                type="video/mp4">
+
+              Your browser does not support the video tag.
+
+            </video>
+
+          </div>
+
+
+        </div>
+
+
+        <img
+          class="result-plot"
+          src="1_revise.png"
+          alt="Real-world comparison result plot">
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         REAL-WORLD GBPTA
+         ======================================================= -->
+
+    <section class="section">
+
+      <div class="video-box">
+
+
+        <div class="section-heading">
+
+          <span class="eyebrow">
+            Real-World Validation
+          </span>
+
+          <h2>
+            Real-World GBPTA Experiment
+          </h2>
+
+          <p>
+
+            Physical robot experiments demonstrating GBPTA in action.
+
+          </p>
+
+        </div>
+
+
+        <div class="video-wrapper">
+
+
+          <video
+            id="realworld-video"
+            controls
+            playsinline
+            muted>
+
+            <source
+              src="1.mp4"
+              type="video/mp4">
+
+            Your browser does not support the video tag.
+
+          </video>
+
+
+        </div>
+
+
+        <img
+          class="result-plot"
+          src="result.png"
+          alt="GBPTA real-world experiment result">
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         APPLICATIONS
+         ======================================================= -->
+
+    <section class="section">
+
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Applications
+        </span>
+
+        <h2>
+          GBPTA in Different Scenarios
+        </h2>
+
+        <p>
+
+          The framework is evaluated in multiple multi-robot
+          coordination scenarios.
+
+        </p>
+
+      </div>
+
+
+      <div class="application-grid">
+
+
+        <!-- PURSUIT-EVASION -->
+
+        <div class="application-card">
+
+
+          <video
+            class="application-video"
+            controls
+            playsinline>
+
+            <source
+              src="2.mp4"
+              type="video/mp4">
+
+            Your browser does not support the video tag.
+
+          </video>
+
+
+          <div class="application-content">
+
+            <h3>
+              Pursuit-Evasion
+            </h3>
+
+            <p>
+
+              Example pursuit-evasion experiments demonstrating
+              distributed task allocation between multiple robots.
+
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <!-- MULTI-ROBOT PURSUIT -->
+
+        <div class="application-card">
+
+
+          <video
+            class="application-video"
+            controls
+            playsinline>
+
+            <source
+              src="3.mp4"
+              type="video/mp4">
+
+            Your browser does not support the video tag.
+
+          </video>
+
+
+          <div class="application-content">
+
+            <h3>
+              Multi-Robot Pursuit
+            </h3>
+
+            <p>
+
+              Additional pursuit-evasion visualization illustrating
+              task assignment behavior.
+
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <!-- PICKUP AND DELIVERY -->
+
+        <div class="application-card pickup-card">
+
+
+          <video
+            class="application-video"
+            controls
+            playsinline>
+
+            <source
+              src="pp.mp4"
+              type="video/mp4">
+
+            Your browser does not support the video tag.
+
+          </video>
+
+
+          <div class="application-content">
+
+            <h3>
+              Pickup and Delivery
+            </h3>
+
+            <p>
+
+              Multi-robot package pickup and delivery experiment
+              using distributed task allocation.
+
+            </p>
+
+          </div>
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         HARDWARE DEMONSTRATION
+         ======================================================= -->
+
+    <section class="section">
+
+
+      <div class="video-box">
+
+
+        <div class="section-heading">
+
+          <span class="eyebrow">
+            Comparison
+          </span>
+
+          <h2>
+            Shape Formation Demonstration
+          </h2>
+
+          <p>
+
+            Sahape formation experiment using GBPTA and DANCeRS for comparison.
+
+          </p>
+
+        </div>
+
+
+        <div class="video-wrapper hardware-video">
+
+
+          <video
+            controls
+            playsinline
+            muted>
+
+            <source
+              src="Comparison.mp4"
+              type="video/mp4">
+
+            Your browser does not support the video tag.
+
+          </video>
+
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         SECOND SHAPE FORMATION DEMONSTRATION
+         ======================================================= -->
+
+    <section class="section">
+
+
+      <div class="video-box">
+
+
+        <div class="section-heading">
+
+          <span class="eyebrow">
+            Comparison
+          </span>
+
+          <h2>
+            Shape Formation Demonstration
+          </h2>
+
+          <p>
+
+            Sahape formation experiment using GBPTA and DANCeRS for comparison.
+
+          </p>
+
+        </div>
+
+
+        <div class="video-wrapper hardware-video">
+
+
+          <video
+            controls
+            playsinline
+            muted>
+
+            <source
+              src="comparison2.mp4"
+              type="video/mp4">
+
+            Your browser does not support the video tag.
+
+          </video>
+
+
+        </div>
+
+
+        <div
+          class="image-slideshow-wrapper"
+          id="shape-comparison-plots">
+
+
+          <div class="image-slide active">
+
+            <img
+              src="makespan.png"
+              alt="Makespan comparison plot">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="max_distance.png"
+              alt="Maximum distance comparison plot">
+
+          </div>
+
+
+          <div class="image-slide">
+
+            <img
+              src="totaldistance.png"
+              alt="Total distance comparison plot">
+
+          </div>
+
+
+        </div>
+
+
+        <div class="slideshow-controls">
+
+
+          <button
+            class="slide-btn"
+            id="plotPrevBtn"
+            type="button">
+
+            ← Previous
+
+          </button>
+
+
+          <div
+            class="slide-indicators"
+            id="plotIndicators">
+
+            <span
+              class="indicator active"
+              data-slide="0"></span>
+
+            <span
+              class="indicator"
+              data-slide="1"></span>
+
+            <span
+              class="indicator"
+              data-slide="2"></span>
+
+          </div>
+
+
+          <button
+            class="slide-btn"
+            id="plotNextBtn"
+            type="button">
+
+            Next →
+
+          </button>
+
+
+        </div>
+
+
+        <div class="slide-counter">
+
+          <span id="plotCurrentSlide">
+            1
+          </span>
+
+          /
+
+          <span id="plotTotalSlides">
+            3
+          </span>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         ABLATION STUDY
+         ======================================================= -->
+
+    <section
+      class="section"
+      id="ablation-study">
+
+
+      <div class="section-heading">
+
+        <span class="eyebrow">
+          Ablation Study
+        </span>
+
+        <h2>
+          Ablation Study
+        </h2>
+
+        <p>
+
+          Evaluation of the individual components of the GBPTA
+          framework and their effects on task allocation performance.
+
+        </p>
+
+      </div>
+
+
+      <div class="section-card">
+
+        <div class="abstract-text">
+
+          <p>
+
+            Different hyperparameters and factors affect the performance
+            of the proposed solution. To investigate the effects of the
+            penalty scale $p$ in Eq. (13) and $\beta$ in
+            Eqs. (15) and (12), we evaluate
+            the sum of the convergence values,
+            $ \sum_{i=1}^{N_p} \sum_{j=i+1}^{N_p}v^{ij}_t$,
+            over the iterations for a task allocation problem with four
+            pursuers and four evaders. The experiments are conducted over
+            100 simulation runs. As shown in the ablation results below,
+            increasing the penalty scale $p$ from $10^2$ to $10^6$ generally
+            leads to faster convergence of $v$. Increasing $\beta$ also
+            generally accelerates convergence. Removing the Task Collision
+            Avoidance Factor ($f^{ct_{ij}}_t$) and using $\epsilon \geq 1$
+            in $f^{v_{ij}}_t$ can lead to repeated assignments, causing
+            multiple robots to be assigned to the same task.
+
+          </p>
+
+
+          <div class="equation">
+
+            $$
+            \mathbf{w}^{\ell}_t
+            = \kappa^{ij}_t \cdot
+            \frac{e^{\beta \mathbf{u}^{\ell}_t}}
+            {e^{\beta \mathbf{u}^{i}_t} + e^{\beta \mathbf{u}^{j}_t}},
+            \quad \ell \in \{i, j\}
+            $$
+
+            <span class="equation-number">
+              (12)
+            </span>
+
+          </div>
+
+
+          <div class="equation">
+
+            $$
+            h^{ct_{ij}}_t(\mathbf{c}^i_t, \mathbf{c}^j_t,
+            \mathbf{r}^i_t, \mathbf{r}^j_t)
+            = p \cdot
+            \begin{bmatrix}
+            \mathbf{w}^i_t \\
+            \mathbf{w}^j_t
+            \end{bmatrix}
+            -
+            \begin{bmatrix}
+            \mathbf{c}^i_t \\
+            \mathbf{c}^j_t
+            \end{bmatrix}
+            $$
+
+            <span class="equation-number">
+              (13)
+            </span>
+
+          </div>
+
+
+          <div class="equation">
+
+            $$
+            \psi^k =
+            \frac{e^{-\beta c^{ik}_t}}
+            {\sum_{j=1}^{N_q} e^{-\beta c^{ij}_t}}
+            $$
+
+            <span class="equation-number">
+              (15)
+            </span>
+
+          </div>
+
+
+          <img
+            class="result-plot"
+            src="abliation.png"
+            alt="Ablation study results">
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+  </main>
+
+
+  <!-- =========================================================
+       FOOTER
+       ========================================================= -->
+
+  <footer>
+
+
+    <div class="footer-logo">
+      GBPTA
+    </div>
+
+
+    <div class="footer-description">
+
+      Gaussian Belief Propagation Based Task Allocation for
+      multi-robot multi-task systems.
+
+    </div>
+
+
+    <div class="footer-links">
+
+      <a href="#overview">
+        Overview
+      </a>
+
+      <a href="#paper">
+        Paper
+      </a>
+
+      <a href="#results">
+        Results
+      </a>
+
+      <a href="#method">
+        Method
+      </a>
+
+      <a href="#demo">
+        Interactive Demo
+      </a>
+
+      <a href="#experiments">
+        Experiments
+      </a>
+
+      <a
+        href="https://github.com/GBPTA/demo"
+        target="_blank"
+        rel="noopener noreferrer">
+
+        GitHub
+
+      </a>
+
+    </div>
+
+
+    <div class="footer-copy">
+
+      © 2026 GBPTA. All rights reserved.
+
+    </div>
+
+
+  </footer>
+
+
+  <!-- =========================================================
+       JAVASCRIPT
+       ========================================================= -->
+
+  <script>
+
+
+    /* =========================================================
+       GENERIC SLIDESHOW
+       ========================================================= */
+
+    function initSlideshow(config) {
+
+      const section =
+        document.getElementById(
+          config.sectionId
+        );
+
+      if (!section) {
+        return;
+      }
+
+      const slides =
+        section.querySelectorAll(
+          config.slideSelector
+        );
+
+      const indicators =
+        section.querySelectorAll(
+          config.indicatorSelector
+        );
+
+      const prevBtn =
+        document.getElementById(
+          config.prevBtnId
+        );
+
+      const nextBtn =
+        document.getElementById(
+          config.nextBtnId
+        );
+
+      const currentSlideSpan =
+        document.getElementById(
+          config.currentSlideId
+        );
+
+      const totalSlidesSpan =
+        document.getElementById(
+          config.totalSlidesId
+        );
+
+      let currentSlideIndex = 0;
+
+
+      function showSlide(index) {
+
+        if (!slides.length) {
+          return;
+        }
+
+        if (index < 0) {
+          index = 0;
+        }
+
+        if (index >= slides.length) {
+          index =
+            slides.length - 1;
+        }
+
+        currentSlideIndex = index;
+
+
+        slides.forEach(
+          (slide, i) => {
+
+            slide.classList.toggle(
+              "active",
+              i === currentSlideIndex
+            );
+
+          }
+        );
+
+
+        indicators.forEach(
+          (indicator, i) => {
+
+            indicator.classList.toggle(
+              "active",
+              i === currentSlideIndex
+            );
+
+          }
+        );
+
+
+        if (currentSlideSpan) {
+
+          currentSlideSpan.textContent =
+            currentSlideIndex + 1;
+
+        }
+
+
+        if (totalSlidesSpan) {
+
+          totalSlidesSpan.textContent =
+            slides.length;
+
+        }
+
+
+        if (prevBtn) {
+
+          prevBtn.disabled =
+            currentSlideIndex === 0;
+
+        }
+
+
+        if (nextBtn) {
+
+          nextBtn.disabled =
+            currentSlideIndex ===
+            slides.length - 1;
+
+        }
+
+      }
+
+
+      if (prevBtn) {
+
+        prevBtn.addEventListener(
+          "click",
+          () =>
+            showSlide(
+              currentSlideIndex - 1
+            )
+        );
+
+      }
+
+
+      if (nextBtn) {
+
+        nextBtn.addEventListener(
+          "click",
+          () =>
+            showSlide(
+              currentSlideIndex + 1
+            )
+        );
+
+      }
+
+
+      indicators.forEach(
+        (indicator, index) => {
+
+          indicator.addEventListener(
+            "click",
+            () =>
+              showSlide(index)
+          );
+
+        }
+      );
+
+
+      showSlide(0);
+
+    }
+
+
+    /* =========================================================
+       IMAGE SLIDESHOW
+       ========================================================= */
+
+    initSlideshow({
+
+      sectionId:
+        "scenario",
+
+      slideSelector:
+        ".image-slide",
+
+      indicatorSelector:
+        "#imageIndicators .indicator",
+
+      prevBtnId:
+        "imgPrevBtn",
+
+      nextBtnId:
+        "imgNextBtn",
+
+      currentSlideId:
+        "imgCurrentSlide",
+
+      totalSlidesId:
+        "imgTotalSlides"
+
+    });
+
+
+    /* =========================================================
+       FACTOR SLIDESHOW
+       ========================================================= */
+
+    initSlideshow({
+
+      sectionId:
+        "method",
+
+      slideSelector:
+        ".slide",
+
+      indicatorSelector:
+        "#factorIndicators .indicator",
+
+      prevBtnId:
+        "prevBtn",
+
+      nextBtnId:
+        "nextBtn",
+
+      currentSlideId:
+        "currentSlide",
+
+      totalSlidesId:
+        "totalSlides"
+
+    });
+
+
+    /* =========================================================
+       SHAPE COMPARISON PLOTS SLIDESHOW
+       ========================================================= */
+
+    initSlideshow({
+
+      sectionId:
+        "shape-comparison-plots",
+
+      slideSelector:
+        ".image-slide",
+
+      indicatorSelector:
+        "#plotIndicators .indicator",
+
+      prevBtnId:
+        "plotPrevBtn",
+
+      nextBtnId:
+        "plotNextBtn",
+
+      currentSlideId:
+        "plotCurrentSlide",
+
+      totalSlidesId:
+        "plotTotalSlides"
+
+    });
+
+
+    /* =========================================================
+       INTERACTIVE DEMO
+       ========================================================= */
+
+    document
+      .getElementById("form-section")
+      .addEventListener(
+        "submit",
+        function(event) {
+
+          event.preventDefault();
+
+
+          const inputIds = [
+
+            "task1_x",
+            "task1_y",
+            "task1_theta",
+
+            "task2_x",
+            "task2_y",
+            "task2_theta",
+
+            "robot1_x",
+            "robot1_y",
+            "robot1_theta",
+
+            "robot2_x",
+            "robot2_y",
+            "robot2_theta"
+
+          ];
+
+
+          const params =
+            inputIds
+              .map(id => {
+
+                const element =
+                  document.getElementById(
+                    id
+                  );
+
+
+                return (
+
+                  encodeURIComponent(id) +
+                  "=" +
+                  encodeURIComponent(
+                    element.value
+                  )
+
+                );
+
+              })
+              .join("&");
+
+
+          window.location.href =
+            "graph_withfactorsTA.html?" +
+            params;
+
+        }
+      );
+
+
+    /* =========================================================
+       REAL-WORLD VIDEO
+       ========================================================= */
+
+    (function() {
+
+      const video =
+        document.getElementById(
+          "realworld-video"
+        );
+
+
+      if (!video) {
+        return;
+      }
+
+
+      video.muted = true;
+
+
+      video.playbackRate = 3.0;
+
+
+      video.addEventListener(
+        "loadedmetadata",
+        function() {
+
+          video.playbackRate =
+            3.0;
+
+        }
+      );
+
+
+      video.addEventListener(
+        "timeupdate",
+        function() {
+
+          if (
+            video.currentTime >= 51
+          ) {
+
+            video.pause();
+
+          }
+
+        }
+      );
+
+
+      const playPromise =
+        video.play();
+
+
+      if (
+        playPromise &&
+        typeof playPromise.catch ===
+          "function"
+      ) {
+
+        playPromise.catch(
+          () => {}
+        );
+
+      }
+
+    })();
+
+  </script>
+
+</body>
+
+</html>
+

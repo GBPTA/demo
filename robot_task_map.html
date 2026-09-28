@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robot & Task Positioning</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; background: linear-gradient(120deg, #f8fafc 0%, #e3f0ff 100%); }
+    .container { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
+    #setup { min-width: 220px; max-width: 300px; flex: 1 1 220px; }
+    #mapPanel { flex: 2 1 600px; min-width: 320px; display: flex; flex-direction: column; align-items: center; }
+    #map { border: 1px solid #333; background: #f9f9f9; cursor: grab; display: block; margin-bottom: 10px; border-radius: 18px; box-shadow: 0 4px 24px 0 rgba(60,60,120,0.08); }
+    .legend { margin-top: 10px; }
+    .legend span { display: inline-block; width: 16px; height: 16px; margin-right: 5px; vertical-align: middle; }
+    .robot { background: #2196f3; }
+    .task { background: #e53935; }
+    #resetBtn, #computeBtn, #inputForm button[type="submit"] {
+      background: #2196f3;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 1.1em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px 0 rgba(33,150,243,0.08);
+      transition: background 0.2s;
+      margin-top: 10px;
+      margin-right: 8px;
+    }
+    #resetBtn:hover, #computeBtn:hover, #inputForm button[type="submit"]:hover {
+      background: #1769aa;
+    }
+    #tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      z-index: 10;
+      display: none;
+      white-space: nowrap;
+    }
+    /* Material-style input */
+    .material-input-group {
+      position: relative;
+      margin-bottom: 28px;
+    }
+    .material-input {
+      width: 100%;
+      font-size: 1.1em;
+      padding: 14px 12px 14px 12px;
+      border: 1.5px solid #b0bec5;
+      border-radius: 8px;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px 0 rgba(33,150,243,0.04);
+      text-align: center;
+    }
+    .material-input:focus {
+      border-color: #2196f3;
+      box-shadow: 0 2px 12px 0 rgba(33,150,243,0.12);
+    }
+    .material-label {
+      position: absolute;
+      left: 14px;
+      top: 16px;
+      color: #789;
+      font-size: 1em;
+      pointer-events: none;
+      background: #fff;
+      padding: 0 4px;
+      transition: 0.2s cubic-bezier(.4,0,.2,1);
+      border-radius: 4px;
+    }
+    .material-input:focus + .material-label,
+    .material-input:not(:placeholder-shown) + .material-label {
+      top: -10px;
+      left: 10px;
+      font-size: 0.92em;
+      color: #2196f3;
+      background: #fff;
+      padding: 0 4px;
+    }
+    .material-error {
+      color: #e53935;
+      font-size: 0.95em;
+      margin-top: 2px;
+      min-height: 18px;
+      padding-left: 2px;
+    }
+    #inputForm button[type="submit"] {
+      background: #2196f3;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 1.1em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px 0 rgba(33,150,243,0.08);
+      transition: background 0.2s;
+    }
+    #inputForm button[type="submit"]:hover {
+      background: #1769aa;
+    }
+    /* Summary panel */
+    #summaryPanel {
+      min-width: 260px;
+      max-width: 340px;
+      flex: 1 1 260px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px 0 rgba(60,60,120,0.08);
+      padding: 18px 18px 10px 18px;
+      margin-top: 0;
+      margin-bottom: 0;
+      margin-left: 0;
+      margin-right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-height: 200px;
+    }
+    #summaryPanel h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+      color: #2196f3;
+    }
+    #summaryPanel pre {
+      background: #f5f7fa;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 1em;
+      margin-bottom: 10px;
+      width: 100%;
+      overflow-x: auto;
+    }
+    @media (max-width: 1200px) {
+      .container { flex-direction: column; }
+      #mapPanel, #summaryPanel { min-width: 0; max-width: 100%; }
+      #summaryPanel { margin-top: 24px; }
+    }
+    #startBtn {
+      position: relative;
+      top: -30px;      /* Moves the button up by 10px */
+      left: 110px;      /* Moves the button right by 30px */
+    }
+    #instructions {
+      margin-top: 18px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h2>Pursuer & Evader Positioning Tool</h2>
+  <div class="container">
+    <div id="setup">
+      <form id="inputForm" autocomplete="off" novalidate>
+        <div class="material-input-group">
+          <input type="number" id="numRobots" class="material-input" min="1" required placeholder=" " />
+          <label for="numRobots" class="material-label">Number of Pursuers</label>
+          <div id="numRobotsError" class="material-error"></div>
+        </div>
+        <div class="material-input-group">
+          <input type="number" id="numTasks" class="material-input" min="1" required placeholder=" " />
+          <label for="numTasks" class="material-label">Number of Evaders</label>
+          <div id="numTasksError" class="material-error"></div>
+        </div>
+        <button type="submit" id="startBtn">Start</button>
+      </form>
+    </div>
+    <div id="mapPanel">
+      <canvas id="map" width="800" height="500"></canvas>
+      <div id="tooltip"></div>
+      <div class="legend" id="legend">
+        <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#2e7d32;margin-right:6px;"></span> Pursuer &nbsp;&nbsp;
+        <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#c62828;margin-right:6px;"></span> Evader
+        <div id="instructions"></div>
+        <button id="resetBtn" type="button" class="material-btn">Reset</button>
+        <button id="computeBtn" type="button" class="material-btn">Compute Assignment</button>
+      </div>
+    </div>
+    <div id="summaryPanel">
+      <h3>Summary of Positions</h3>
+      <div id="summary"></div>
+    </div>
+  </div>
+  <script>
+    const form = document.getElementById('inputForm');
+    const map = document.getElementById('map');
+    const legend = document.getElementById('legend');
+    const instructions = document.getElementById('instructions');
+    const summary = document.getElementById('summary');
+    const resetBtn = document.getElementById('resetBtn');
+    const tooltip = document.getElementById('tooltip');
+    const numRobotsInput = document.getElementById('numRobots');
+    const numTasksInput = document.getElementById('numTasks');
+    const numRobotsError = document.getElementById('numRobotsError');
+    const numTasksError = document.getElementById('numTasksError');
+
+    let numRobots = 2, numTasks = 2;
+    let robots = [], tasks = [];
+    let placing = 'robot';
+    let animationQueue = [];
+    let animating = false;
+
+    // Zoom/Pan state
+    let scale = 1, offsetX = 0, offsetY = 0;
+    let isPanning = false, panStart = {x:0, y:0}, panOffsetStart = {x:0, y:0};
+
+    // Icon sizes
+    const ROBOT_SIZE = 8, TASK_SIZE = 8;
+
+    // Set default values
+    numRobotsInput.value = numRobots;
+    numTasksInput.value = numTasks;
+
+    function validateInput(input, errorDiv) {
+      let value = input.value.trim();
+      if (value === '' || isNaN(value) || parseInt(value) < 1) {
+        errorDiv.textContent = 'Please enter a value ≥ 1.';
+        input.classList.add('invalid');
+        return false;
+      } else {
+        errorDiv.textContent = '';
+        input.classList.remove('invalid');
+        return true;
+      }
+    }
+
+    numRobotsInput.addEventListener('input', () => validateInput(numRobotsInput, numRobotsError));
+    numTasksInput.addEventListener('input', () => validateInput(numTasksInput, numTasksError));
+
+    function initializeMap() {
+      robots = [];
+      tasks = [];
+      placing = 'robot';
+      scale = 1; offsetX = 0; offsetY = 0;
+      animationQueue = [];
+      animating = false;
+      updateSummary();
+      drawMap();
+      updateInstructions();
+    }
+
+    form.onsubmit = function(e) {
+      e.preventDefault();
+      let valid1 = validateInput(numRobotsInput, numRobotsError);
+      let valid2 = validateInput(numTasksInput, numTasksError);
+      if (!valid1 || !valid2) return;
+      numRobots = parseInt(numRobotsInput.value, 10);
+      numTasks = parseInt(numTasksInput.value, 10);
+      initializeMap();
+    };
+
+    resetBtn.onclick = function() {
+      initializeMap();
+    };
+
+    function updateInstructions() {
+      if (robots.length < numRobots) {
+        instructions.textContent = `Click to place pursuer ${robots.length + 1} of ${numRobots}`;
+      } else if (tasks.length < numTasks) {
+        instructions.textContent = `Click to place evader ${tasks.length + 1} of ${numTasks}`;
+      } else {
+        instructions.textContent = 'All positions set! See summary.';
+      }
+    }
+
+    function drawGrid(ctx, width, height, gridSize = 50) {
+      ctx.save();
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1/scale;
+      for (let x = 0; x <= width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawMap() {
+      const ctx = map.getContext('2d');
+      ctx.setTransform(1,0,0,1,0,0); // Reset transform
+      ctx.clearRect(0, 0, map.width, map.height);
+      ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+      drawGrid(ctx, map.width/scale, map.height/scale);
+      // Draw robots
+      robots.forEach((pt, i) => {
+        drawCircle(ctx, pt.x, pt.y, ROBOT_SIZE, '#2e7d32', pt.alpha ?? 1);
+        drawLabel(ctx, pt.x, pt.y, `P${i+1}`);
+      });
+      // Draw evaders
+      tasks.forEach((pt, i) => {
+        drawCircle(ctx, pt.x, pt.y, TASK_SIZE, '#c62828', pt.alpha ?? 1);
+        drawLabel(ctx, pt.x, pt.y, `E${i+1}`);
+      });
+    }
+
+    function drawIcon(ctx, x, y, icon, size, alpha=1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = `bold ${size}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(icon, x, y);
+      ctx.restore();
+    }
+
+    function drawCircle(ctx, x, y, radius, color, alpha=1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawLabel(ctx, x, y, label) {
+      ctx.save();
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#333';
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 3/scale;
+      ctx.strokeText(label, x, y+12);
+      ctx.fillText(label, x, y+12);
+      ctx.restore();
+    }
+
+    function animatePlacement(type, pt) {
+      pt.alpha = 0;
+      animationQueue.push({type, pt, progress: 0});
+      if (!animating) animateStep();
+    }
+
+    function animateStep() {
+      animating = true;
+      let needsRedraw = false;
+      animationQueue.forEach(obj => {
+        obj.progress += 0.08;
+        obj.pt.alpha = Math.min(1, obj.progress);
+        needsRedraw = true;
+      });
+      drawMap();
+      animationQueue = animationQueue.filter(obj => obj.progress < 1);
+      if (animationQueue.length > 0) {
+        requestAnimationFrame(animateStep);
+      } else {
+        animating = false;
+      }
+    }
+
+    map.addEventListener('mousedown', function(e) {
+      if (e.button === 1 || e.button === 2) return; // Only left click
+      isPanning = true;
+      map.style.cursor = 'grabbing';
+      panStart = {x: e.clientX, y: e.clientY};
+      panOffsetStart = {x: offsetX, y: offsetY};
+    });
+    map.addEventListener('mousemove', function(e) {
+      if (isPanning) {
+        offsetX = panOffsetStart.x + (e.clientX - panStart.x);
+        offsetY = panOffsetStart.y + (e.clientY - panStart.y);
+        drawMap();
+        tooltip.style.display = 'none';
+      } else {
+        // Hover tooltips
+        const pt = getMapCoords(e);
+        let found = false;
+        robots.forEach((r, i) => {
+          if (distance(pt, r) < ROBOT_SIZE) {
+            showTooltip(e, `Pursuer ${i+1}<br>(${Math.round(r.x)}, ${Math.round(r.y)})`);
+            found = true;
+          }
+        });
+        if (!found) {
+          tasks.forEach((t, i) => {
+            if (distance(pt, t) < TASK_SIZE) {
+              showTooltip(e, `Evader ${i+1}<br>(${Math.round(t.x)}, ${Math.round(t.y)})`);
+              found = true;
+            }
+          });
+        }
+        if (!found) tooltip.style.display = 'none';
+      }
+    });
+    map.addEventListener('mouseup', function(e) {
+      isPanning = false;
+      map.style.cursor = 'grab';
+    });
+    map.addEventListener('mouseleave', function() {
+      isPanning = false;
+      tooltip.style.display = 'none';
+    });
+    map.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      const mouse = getMapCoords(e);
+      const prevScale = scale;
+      scale *= (e.deltaY < 0) ? 1.1 : 0.9;
+      scale = Math.max(0.5, Math.min(3, scale));
+      // Adjust offset so zoom is centered on mouse
+      offsetX -= (mouse.x * scale - mouse.x * prevScale);
+      offsetY -= (mouse.y * scale - mouse.y * prevScale);
+      drawMap();
+    }, {passive: false});
+
+    map.onclick = function(e) {
+      if (isPanning || animating) return;
+      const pt = getMapCoords(e);
+      if (robots.length < numRobots) {
+        robots.push({x: pt.x, y: pt.y});
+        animatePlacement('robot', robots[robots.length-1]);
+        updateInstructions();
+        updateSummary();
+        if (robots.length === numRobots && numTasks === 0) updateSummary();
+      } else if (tasks.length < numTasks) {
+        tasks.push({x: pt.x, y: pt.y});
+        animatePlacement('task', tasks[tasks.length-1]);
+        updateInstructions();
+        updateSummary();
+        if (tasks.length === numTasks) updateSummary();
+      }
+    };
+
+    function getMapCoords(e) {
+      const rect = map.getBoundingClientRect();
+      const x = (e.clientX - rect.left - offsetX) / scale;
+      const y = (e.clientY - rect.top - offsetY) / scale;
+      return {x: x, y: y};
+    }
+    function distance(a, b) {
+      return Math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2);
+    }
+    function showTooltip(e, html) {
+      tooltip.innerHTML = html;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.pageX + 12) + 'px';
+      tooltip.style.top = (e.pageY - 10) + 'px';
+    }
+
+    async function sendPositionsToBackend(robots, tasks) {
+      const response = await fetch('/compute_distances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ robots, tasks })
+      });
+      const data = await response.json();
+      return data.distance_matrix;
+    }
+
+async function getAssignmentsFromBackend(robots, tasks) {
+  const response = await fetch('https://gbpta.onrender.com/assign_tasks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ robots, tasks })
+  });
+  const data = await response.json();
+  return data.assignments; // array of {robot: i, task: j}
+}
+
+
+    document.getElementById('computeBtn').onclick = async function() {
+      if (robots.length === numRobots && tasks.length === numTasks) {
+        const assignments = await getAssignmentsFromBackend(robots, tasks);
+        drawAssignments(assignments);
+        // Optionally, display assignments in summary
+        let html = '<b>Assignments (Robot → Task):</b><br><ul>';
+        assignments.forEach(a => {
+          html += `<li>Robot ${a.robot+1} → Task ${a.task+1}</li>`;
+        });
+        html += '</ul>';
+        summary.innerHTML += html;
+      } else {
+        alert('Please place all robots and tasks first.');
+      }
+    };
+
+    function drawAssignments(assignments) {
+      // Redraw map and then draw lines
+      drawMap();
+      const ctx = map.getContext('2d');
+      ctx.save();
+      ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+      ctx.strokeStyle = '#43a047';
+      ctx.lineWidth = 3;
+      assignments.forEach(a => {
+        const r = robots[a.robot];
+        const t = tasks[a.task];
+        ctx.beginPath();
+        ctx.moveTo(r.x, r.y);
+        ctx.lineTo(t.x, t.y);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function updateSummary() {
+      let html = '';
+      html += '<b>Pursuers:</b><br><pre>' + JSON.stringify(robots.map(({x,y})=>({x:Math.round(x),y:Math.round(y)})), null, 2) + '</pre>';
+      html += '<b>Evaders:</b><br><pre>' + JSON.stringify(tasks.map(({x,y})=>({x:Math.round(x),y:Math.round(y)})), null, 2) + '</pre>';
+      summary.innerHTML = html;
+    }
+
+    // Initialize on load
+    initializeMap();
+  </script>
+</body>
+</html> 

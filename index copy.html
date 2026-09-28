@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Start Visualization</title>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 100vw;
+      height: 400vh; /* Extended page height to fit all sections */
+      background: #f7f7f7;
+      position: relative;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      z-index: -1;
+    }
+    .input-panel {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      padding: 32px 32px 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      align-items: center;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      position: absolute;
+      top: 270vh;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 1;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      max-width: 1100px;
+      width: 95%;
+    }
+    .pose-input-group label {
+      font-weight: bold;
+    }
+    .pose-input-group input[type="number"] {
+      width: 60px;
+      margin-right: 2px;
+      margin-bottom: 2px;
+    }
+    #start-btn {
+      padding: 18px 36px;
+      font-size: 1.3rem;
+      border-radius: 10px;
+      border: none;
+      background: #1976d2;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: background 0.2s;
+      margin-top: 18px;
+    }
+    #start-btn:hover {
+      background: #125ea2;
+    }
+    
+    .background-image {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -2;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+    
+    .main-title {
+      position: absolute;
+      top: 20vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1001;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 40px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+      text-align: center;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    .main-title h1 {
+      margin: 0;
+      color: #1976d2;
+      font-size: 2rem;
+      font-weight: bold;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .abstract-box {
+      position: absolute;
+      top: 40vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 30px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 1100px;
+      width: 90%;
+      text-align: justify;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    .abstract-box h3 {
+      margin: 0 0 15px 0;
+      color: #1976d2;
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-align: center;
+    }
+    
+    .abstract-box p {
+      margin: 0;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: justify;
+    }
+    
+    .slideshow-container {
+      position: absolute;
+      top: 110vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 1100px;
+      width: 95%;
+      opacity: 1;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .image-slideshow-container {
+      position: absolute;
+      top: 205vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 1100px;
+      width: 95%;
+      opacity: 1;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .image-slideshow-container h4 {
+      margin: 0 0 15px 0;
+      color: #1976d2;
+      font-size: 1.6rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .image-slide {
+      display: none;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      box-sizing: border-box;
+      background: #fff;
+    }
+
+    .image-slide.active {
+      display: flex;
+    }
+
+    .image-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #fff;
+    }
+    
+    .slideshow-container h4 {
+      margin: 0 0 15px 0;
+      color: #1976d2;
+      font-size: 1.6rem;
+      font-weight: bold;
+      text-align: center;
+    }
+    
+    .slideshow-wrapper {
+      position: relative;
+      width: 100%;
+      height: 550px;
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: #f8f9fa;
+    }
+
+    /* Increase height specifically for the Involved Factors slideshow */
+    #slideshow-section .slideshow-wrapper {
+      height: 800px;
+    }
+    
+    .slide {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      padding: 30px;
+      box-sizing: border-box;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    
+    .slide.active {
+      display: flex;
+    }
+    
+    .slide-content {
+      background: white;
+      border-radius: 8px;
+      padding: 25px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-left: 4px solid #1976d2;
+      max-width: 100%;
+      width: 100%;
+    }
+    
+    .slide-title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #1976d2;
+      text-align: center;
+    }
+    
+    .slide-description {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      text-align: justify;
+    }
+    
+    .slideshow-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+    }
+    
+    .slide-btn {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    
+    .slide-btn:hover {
+      background: #125ea2;
+    }
+    
+    .slide-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .slide-indicators {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ccc;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .indicator.active {
+      background: #1976d2;
+    }
+    
+    .slide-counter {
+      font-size: 14px;
+      color: #666;
+      font-weight: bold;
+    }
+    
+    .content-section {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .content-section.visible {
+      opacity: 1;
+    }
+
+    /* PDF link box (below abstract) */
+    .pdf-box {
+      position: absolute;
+      top: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 1100px;
+      width: 95%;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pdf-box h3 {
+      margin: 0 0 15px 0;
+      color: #1976d2;
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-align: center;
+      width: 100%;
+    }
+
+    .pdf-box .pdf-content {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .pdf-box .pdf-text {
+      flex: 1;
+      text-align: left;
+    }
+
+    .pdf-box .pdf-image {
+      width: 150px;
+      height: 150px;
+      object-fit: contain;
+      cursor: pointer;
+      transition: transform 0.2s ease, filter 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .pdf-box .pdf-image:hover {
+      transform: scale(1.05);
+      filter: brightness(0.9);
+    }
+
+    .realworld-box {
+      position: absolute;
+      top: 330vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 30px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 1100px;
+      width: 95%;
+      text-align: center;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .realworld-box h3 {
+      margin: 0 0 10px 0;
+      color: #1976d2;
+      font-size: 1.4rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .realworld-box video {
+      width: 100%;
+      height: 600px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-top: 12px;
+      background: #000;
+    }
+
+    .realworld-box img {
+      width: 100%;
+      height: 200px;
+      object-fit: contain;
+      border-radius: 8px;
+      margin-top: 12px;
+      background: #fff;
+    }
+
+    .comparison-box {
+      position: absolute;
+      top: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 30px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 1100px;
+      width: 95%;
+      text-align: center;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .hardware-box {
+      position: absolute;
+      top: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 30px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 1100px;
+      width: 95%;
+      text-align: center;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .hardware-box h3 {
+      margin: 0 0 10px 0;
+      color: #1976d2;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+
+    .hardware-box video {
+      width: 100%;
+      height: 750px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-top: 12px;
+      background: #000;
+    }
+
+    .comparison-box h3 {
+      margin: 0 0 10px 0;
+      color: #1976d2;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+
+    .comparison-videos {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .comparison-video h4 {
+      margin: 0 0 8px 0;
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .comparison-video video {
+      width: 100%;
+      height: 480px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #000;
+      display: block;
+    }
+
+    .comparison-box img {
+      width: 100%;
+      height: 220px;
+      object-fit: contain;
+      border-radius: 8px;
+      margin-top: 16px;
+      background: #fff;
+    }
+
+    @media (max-width: 600px) {
+      .comparison-videos {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-video video {
+        height: 340px;
+      }
+    }
+
+    .pursuit-box {
+      position: absolute;
+      top: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 30px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 1100px;
+      width: 95%;
+      text-align: center;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .pursuit-box h3 {
+      margin: 0 0 10px 0;
+      color: #1976d2;
+      font-size: 1.4rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .pursuit-box p {
+      margin: 0;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: center;
+      margin-top: 8px;
+    }
+    
+    .pursuit-videos {
+      display: flex;
+      flex-direction: column; /* stack videos vertically */
+      gap: 12px;
+      margin-top: 12px;
+      align-items: center;
+    }
+
+    .pursuit-videos video {
+      width: 100%;
+      height: 600px; /* match slideshow height */
+      object-fit: cover;
+      border-radius: 8px;
+      background: #000;
+      display: block;
+    }
+
+    /* Pickup and Delivery box (matches other boxes) */
+    .pickup-box {
+      position: absolute;
+      top: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 30px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      max-width: 1100px;
+      width: 95%;
+      text-align: center;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .pickup-box h3 {
+      margin: 0 0 10px 0;
+      color: #1976d2;
+      font-size: 1.4rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .pickup-box video {
+      width: 100%;
+      height: 600px; /* match slideshow height */
+      object-fit: cover;
+      border-radius: 8px;
+      background: #000;
+      display: block;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background images that change with slider -->
+  <div class="background-image" id="background-image"></div>
+
+  <div class="overlay"></div>
+
+  
+  <!-- Main Title -->
+  <div class="main-title" id="title-section">
+    <h1>GBP Based Task Allocation (GBPTA)</h1>
+  </div>
+  
+  <!-- Abstract Box -->
+  <div class="abstract-box" id="abstract-section">
+    <h3>Abstract</h3>
+    <p>
+      Multi-robot systems are used in various fields such as autonomous transportation and delivery. A key component in enabling these systems is task allocation, which becomes significantly more complex when coordinating multiple robots. For solving the task allocation problem, the challenges extend beyond those faced by a single robot, requiring robust coordination strategies. Moreover, a critical factor in evaluating multi-robot systems is their ability to operate reliably in real-world, dynamic environments. In many scenarios, ground-truth information about robots and tasks may be unavailable, demanding methods that can function with noisy observations and handle substantial uncertainty.
+    </p>
+    <p style="margin-top: 15px;">
+      In this paper, we propose GBPTA, a fully distributed framework for multi-robot multi-task allocation problem, using Gaussian Belief Propagation. The proposed framework is applied to two scenarios: multi-robot pursuit-evasion and package pickup and delivery. GBPTA can operate in different environments and under varying communication radii. Moreover, the proposed approach can handle problems in which multiple features must be considered for task allocation. Through various simulations and hardware experiments, we show that GBPTA achieves near-optimal task assignments. GBPTA improves the assignment utility, defined as the negative total distance between robots and tasks, by 23.95% compared to the distributed Hungarian methods.
+    </p>
+  </div>
+
+<div class="pdf-box" id="pdf-section">
+  <h3>Paper PDF</h3>
+  <div class="pdf-content">
+    <div class="pdf-text">
+      <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.6;">
+        The pdf of the paper with numerical examples can be found 
+        <a href="https://github.com/GBPTA/demo/blob/main/GBPTA-with-examples.pdf" target="_blank" style="color: #1976d2; text-decoration: none; font-weight: bold;">
+          here.
+        </a>
+        The numerical examples are highlighted in blue-shaded boxes.
+      </p>
+    </div>
+    <img class="pdf-image" id="pdf-image" src="123.png" alt="PDF File" data-pdf-url="https://github.com/GBPTA/demo/blob/main/GBPTA-with-examples.pdf" />
+  </div>
+</div>
+
+  <!-- Additional Image Slideshow (above Involved Factors) -->
+  <div class="image-slideshow-container" id="image-slideshow-section">
+    <h4>Example Scenario</h4>
+    <div class="slideshow-wrapper">
+      <div class="image-slide active"><img src="images/1.png" alt="Slide 1"></div>
+      <div class="image-slide"><img src="images/2.png" alt="Slide 2"></div>
+      <div class="image-slide"><img src="images/3.png" alt="Slide 3"></div>
+      <div class="image-slide"><img src="images/4.png" alt="Slide 4"></div>
+      <div class="image-slide"><img src="images/5.png" alt="Slide 5"></div>
+      <div class="image-slide"><img src="images/6.png" alt="Slide 6"></div>
+      <div class="image-slide"><img src="images/7.png" alt="Slide 7"></div>
+      <div class="image-slide"><img src="images/8.png" alt="Slide 8"></div>
+      <div class="image-slide"><img src="images/9.png" alt="Slide 9"></div>
+      <div class="image-slide"><img src="images/10.png" alt="Slide 10"></div>
+    </div>
+
+    <div class="slideshow-controls">
+      <button class="slide-btn" id="imgPrevBtn">← Previous</button>
+      <div class="slide-indicators">
+        <span class="indicator active" data-slide="0"></span>
+        <span class="indicator" data-slide="1"></span>
+        <span class="indicator" data-slide="2"></span>
+        <span class="indicator" data-slide="3"></span>
+        <span class="indicator" data-slide="4"></span>
+        <span class="indicator" data-slide="5"></span>
+        <span class="indicator" data-slide="6"></span>
+        <span class="indicator" data-slide="7"></span>
+        <span class="indicator" data-slide="8"></span>
+        <span class="indicator" data-slide="9"></span>
+      </div>
+      <button class="slide-btn" id="imgNextBtn">Next →</button>
+    </div>
+
+    <div class="slide-counter">
+      <span id="imgCurrentSlide">1</span> / <span id="imgTotalSlides">10</span>
+    </div>
+  </div>
+  
+  <!-- Slideshow Container -->
+  <div class="slideshow-container" id="slideshow-section">
+    <h4>Involved Factors</h4>
+    <div class="slideshow-wrapper">
+      <div class="slide active">
+        <div class="slide-content">
+          <div class="slide-title">Task Evaluation Factor</div>
+          <div class="slide-description">
+            <p style="font-weight: bold; margin-bottom: 15px;">
+              The aim of the task evaluation factor is to assess the state of tasks for robot $i$ at time $t$. The measurement function of this factor is defined as:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$h^c(\mathbf{c}^i_t) = \mathbf{c}^i_t$$
+            </div>
+            <p style="margin: 15px 0;">
+              $\mathbf{z}^{c_i}$ denotes the vector representing the observed state of tasks for robot $i$, and the residual is computed using the Gaussian equation.
+            </p>
+            <p style="margin: 15px 0;">
+              The Jacobian of $h^c$ can be computed as follows:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$J^c = \frac{\partial h_c}{\partial \mathbf{c}^i_t} = \mathbf{I}_{N_q}$$
+            </div>
+            <p style="margin-top: 15px;">
+              where $\mathbf{I}_{N_q}$ represents the $N_q \times N_q$ identity matrix.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="slide-content">
+          <div class="slide-title">Regret Factor</div>
+          <div class="slide-description">
+            <p style="font-weight: bold; margin-bottom: 15px;">
+              The regret factor evaluates the cost associated with task assignment decisions for each robot in the system.
+            </p>
+            <p style="margin: 15px 0;">
+              where $\mathbf{r}^{i}_t$ represents the associated regret of performing tasks for robot $i$, which is a vector, and each element represents the associated regret of performing a specific task. The observation $\mathbf{z}^{r_i}$ defines the regret associated with the selection of each task. By using the Gaussian equation, the residual is computed.
+            </p>
+            <p style="margin: 15px 0;">
+              The Jacobian of regret factor is as follows:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\mathbf{J^r} = \frac{\partial h^{r}(\mathbf{r}^{i}_{t})}{\partial \mathbf{r}^{i}_{t}}=\mathbf{I}_{N_q}$$
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="slide-content">
+          <div class="slide-title">Task Collision Avoidance Factor</div>
+          <div class="slide-description">
+            <p style="font-weight: bold; margin-bottom: 15px; color: #1976d2;">
+              This factor is defined to make sure that two robots do not select the same task.
+            </p>
+            <p style="margin: 15px 0;">
+              Let $\mathbf{u}$ denote the sum of the state and regret of tasks for each robot:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\mathbf{u}^1_t = \mathbf{c}^i_t + \mathbf{r}^i_t$$
+              $$\mathbf{u}^2_t = \mathbf{c}^j_t + \mathbf{r}^j_t$$
+            </div>
+            <p style="margin: 15px 0;">
+              and
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\boldsymbol{\pi}^i_t = \operatorname{SM}(\mathbf{u}^1_t)$$
+              $$\boldsymbol{\pi}^j_t = \operatorname{SM}(\mathbf{u}^2_t)$$
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="slide-content">
+          <div class="slide-title">Performance Results</div>
+          <div class="slide-description">
+            <p style="margin: 15px 0;">
+              Given a vector $\mathbf{x} = [x_1, x_2, \dots, x_n]^{\top}$, SM is defined as:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\operatorname{SM}(x_i) = \frac{e^{-x_i}}{\sum_{j=1}^n e^{-x_j}}$$
+            </div>
+            <p style="margin: 15px 0;">
+              which represents the softmin weights for $\mathbf{x}$.
+            </p>
+            <p style="margin-top: 20px;">
+              The softmin function assigns higher probability to tasks with lower combined state and regret, resulting in task selection probabilities $\boldsymbol{\pi}^i_t$ and $\boldsymbol{\pi}^j_t$ for robots $i$ and $j$, respectively. By using softmin instead of hard minimum selection, the model maintains differentiability and enables probabilistic task assignment, which is crucial for gradient based optimization and robust decision making under uncertainty.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="slide-content">
+          <div class="slide-title">Softmin Weights Similarity</div>
+          <div class="slide-description">
+            <p style="font-weight: bold; margin-bottom: 15px;">
+              Similarity of softmin weights is captured by the match score:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\kappa^{ij}_t = (\boldsymbol{\pi}^i_{t})^\top \boldsymbol{\pi}^j_t$$
+            </div>
+            <p style="margin: 15px 0;">
+              which is high when both robots are likely to select the same task.
+            </p>
+            <p style="margin: 15px 0;">
+              To softly allocate penalty between the two robots, we define element-wise softmin weights as:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\mathbf{w}^1_t = \kappa^{ij}_t \cdot\frac{e^{\beta \mathbf{u}^1_t}}{e^{\beta \mathbf{u}^1_t} + e^{\beta \mathbf{u}^2_t}}$$
+              $$\mathbf{w}^2_t = \kappa^{ij}_t \cdot \frac{e^{\beta \mathbf{u}^2_t}}{e^{\beta \mathbf{u}^1_t} + e^{\beta \mathbf{u}^2_t}}$$
+            </div>
+            <p style="margin-top: 15px;">
+              where $\beta$ controls the smoothness of the approximation. As $\beta \to \infty$, the measurement function becomes increasingly sharp and approximates a hard decision.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="slide-content">
+          <div class="slide-title">State Update Equation</div>
+          <div class="slide-description">
+            <p style="font-weight: bold; margin-bottom: 15px;">
+              States will be updated utilizing the following measurement equation:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$h^{ct_{ij}}_t= p \cdot \begin{bmatrix} \mathbf{w}^1_t \\ \mathbf{w}^2_t \end{bmatrix} - \begin{bmatrix} \mathbf{c}^i_t \\ \mathbf{c}^j_t \end{bmatrix}$$
+            </div>
+            <p style="margin-top: 15px;">
+              This equation defines how the collision avoidance factor updates the states based on the element-wise softmin weights and current task state vectors for robots $i$ and $j$.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="slide-content">
+          <div class="slide-title">Assignment Factor</div>
+          <div class="slide-description">
+            <p style="font-weight: bold; margin-bottom: 15px;">
+              In this factor a softmin indicating the associated regret and state of each task to be minimum is measured:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$h^a(\boldsymbol{c}^{i}_t,\boldsymbol{a}^{i}_t) = \frac{e^{-\beta \boldsymbol{c}^i_t}}{\sum_{j=1}^{n} e^{-\beta c^{ij}_t}}-\boldsymbol{a}^i_t$$
+            </div>
+            <p style="margin: 15px 0;">
+              Let define $\boldsymbol{\psi}$ as follow:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\boldsymbol{\psi} = \frac{e^{-\beta \boldsymbol{c}^i_t}}{\sum_{j=1}^{n} e^{-\beta c^{ij}_t}}$$
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="slide-content">
+          <div class="slide-title">Assignment Factor Jacobian</div>
+          <div class="slide-description">
+            <p style="margin: 15px 0;">
+              where $\psi^k = \frac{e^{-\beta c^{ik}_t}}{\sum_{j=1}^{n} e^{-\beta c^{ij}_t}}$ denote the $k$-th component of $\boldsymbol{c}^i_t$. Then, the partial derivative of $s_k$ with respect to $c^{il}_t$ is given by:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\frac{\partial u^k}{\partial c^{il}_t} = \beta u^k (\delta^{kl} - u^k)$$
+            </div>
+            <p style="margin-top: 15px;">
+              where $\delta^{kl}$ is the Kronecker delta. The Kronecker delta, denoted by $\delta^{ij}$, is defined as:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\delta^{ij} = \begin{cases} 1 & \text{if } i = j \\ 0 & \text{if } i \ne j \end{cases}$$
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="slide-content">
+          <div class="slide-title">Assignment Factor Full Jacobian</div>
+          <div class="slide-description">
+            <p style="margin: 15px 0;">
+              As a result, the full Jacobian matrix with respect to $\boldsymbol{c}^i_t$ is expressed as
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\frac{\partial h^a}{\partial \boldsymbol{c}^i_t} = \beta \left( \mathrm{diag}(\boldsymbol{\psi}) - \boldsymbol{\psi} \boldsymbol{\psi}^\top \right)$$
+            </div>
+            <p style="margin: 15px 0;">
+              where $\mathrm{diag}(\boldsymbol{u})$ is the diagonal matrix whose entries are the components of $\boldsymbol{u}$, and $\boldsymbol{u} \boldsymbol{u}^\top$ denotes the outer product of $\boldsymbol{u}$ with itself. The Jacobian of $h^a$ with respect to $\boldsymbol{a}^i_t$ is as follow:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$\frac{\partial a^i_t}{\partial h^a} = -\boldsymbol{1} \in \mathbb{R}^{1 \times N_q}.$$ 
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide">
+        <div class="slide-content">
+          <div class="slide-title">Convergence Factor</div>
+          <div class="slide-description">
+            <p style="margin: 15px 0;">
+            It measures the degree of convergence (i.e., overlap) in task assignment vectors in a differentiable way.
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$h^{v} = \sum_{i=1}^{N_p} \sum_{j=i+1}^{N_p} \boldsymbol{a}^i_t(\boldsymbol{a}^j_t)^{\top} - v_t.$$ 
+            </div>
+            <p style="margin: 15px 0;">
+              If $h^{v}$ is near zero, it means the task assignment vectors are close to orthogonal, implying robots are selecting distinct tasks. 
+            </p>
+            <p style="margin: 15px 0;">
+              The Jacobian of this factor with respect to the stacked variable 
+              $\begin{bmatrix} \boldsymbol{a}^1_t & \cdots & \boldsymbol{a}^{N_p}_t & v_t \end{bmatrix}^\top$
+              is given by:
+            </p>
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1976d2;">
+              $$
+              \frac{\partial h^{v}}{\partial \begin{bmatrix} \boldsymbol{a}^1_t \\ \vdots \\ \boldsymbol{a}^{N_p}_t \\ v_t \end{bmatrix}} = 
+              \begin{bmatrix}
+              \sum_{j \ne 1} \left(\boldsymbol{a}^j_t\right)^\top \\
+              \sum_{j \ne 2} \left(\boldsymbol{a}^j_t\right)^\top \\
+              \vdots \\
+              \sum_{j \ne N_p} \left(\boldsymbol{a}^j_t\right)^\top \\
+              -1
+              \end{bmatrix}.
+              $$
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="slideshow-controls">
+      <button class="slide-btn" id="prevBtn">← Previous</button>
+      <div class="slide-indicators">
+        <span class="indicator active" data-slide="0"></span>
+        <span class="indicator" data-slide="1"></span>
+        <span class="indicator" data-slide="2"></span>
+        <span class="indicator" data-slide="3"></span>
+        <span class="indicator" data-slide="4"></span>
+        <span class="indicator" data-slide="5"></span>
+        <span class="indicator" data-slide="6"></span>
+        <span class="indicator" data-slide="7"></span>
+        <span class="indicator" data-slide="8"></span>
+        <span class="indicator" data-slide="9"></span>
+      </div>
+      <button class="slide-btn" id="nextBtn">Next →</button>
+    </div>
+    
+    <div class="slide-counter">
+      <span id="currentSlide">1</span> / <span id="totalSlides">4</span>
+    </div>
+  </div>
+  
+  <form class="input-panel" id="form-section">
+    <h2 style="margin: 0 0 20px 0; color: #1976d2; text-align: center; font-size: 1.5rem;">Gaussian Belief Propagation Based Task Allocation (GBPTA)</h2>
+    <div class="pose-input-group">
+      <label>Task 1 pose:</label><br>
+      <input type="number" id="task1_x" placeholder="x" step="any" value="0">
+      <input type="number" id="task1_y" placeholder="y" step="any" value="0">
+      <input type="number" id="task1_theta" placeholder="θ" step="any" value="0">
+    </div>
+    <div class="pose-input-group">
+      <label>Task 2 pose:</label><br>
+      <input type="number" id="task2_x" placeholder="x" step="any" value="200">
+      <input type="number" id="task2_y" placeholder="y" step="any" value="0">
+      <input type="number" id="task2_theta" placeholder="θ" step="any" value="0">
+    </div>
+    <div class="pose-input-group">
+      <label>Robot 1 pose:</label><br>
+      <input type="number" id="robot1_x" placeholder="x" step="any" value="180">
+      <input type="number" id="robot1_y" placeholder="y" step="any" value="200">
+      <input type="number" id="robot1_theta" placeholder="θ" step="any" value="0">
+    </div>
+    <div class="pose-input-group">
+      <label>Robot 2 pose:</label><br>
+      <input type="number" id="robot2_x" placeholder="x" step="any" value="200">
+      <input type="number" id="robot2_y" placeholder="y" step="any" value="200">
+      <input type="number" id="robot2_theta" placeholder="θ" step="any" value="0">
+    </div>
+    <button id="start-btn" type="submit">Start Animation</button>
+  </form>
+
+  <div class="hardware-box" id="hardware-section">
+    <h3>Hardware Experiment</h3>
+    <video controls playsinline muted>
+      <source src="Comparison.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <div class="comparison-box" id="comparison-section">
+    <h3>Real World Experiments Comparison</h3>
+    <div class="comparison-videos">
+      <div class="comparison-video">
+        <h4>GBPTA</h4>
+        <video controls playsinline muted>
+          <source src="GBPTA_8.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+      <div class="comparison-video">
+        <h4>DANCeRS</h4>
+        <video controls playsinline muted>
+          <source src="DANCeRS.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+    <img src="1_revise.png" alt="Comparison result plot">
+  </div>
+  
+  <!-- Real World Experiments box (placed after form so it appears lowest) -->
+  <div class="realworld-box" id="realworld-section">
+    <h3>Real World Experiments</h3>
+    <video controls playsinline muted>
+      <source src="1.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <p style="margin-top:10px; color:#333; font-size:14px;">Real-world robot experiments demonstrating GBPTA in action.</p>
+    <img src="result.png" alt="Result plot" id="realworld-plot">
+  </div>
+
+  <!-- Pursuit Evasion box (bottom-most) -->
+  <div class="pursuit-box" id="pursuit-section">
+    <h3>Pursuit Evasion</h3>
+    <p>Example pursuit–evasion experiment results and visualizations.</p>
+    <div class="pursuit-videos">
+      <video controls playsinline>
+        <source src="2.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <video controls playsinline>
+        <source src="3.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </div>
+
+  <!-- Pickup and Delivery box (placed below Pursuit Evasion) -->
+  <div class="pickup-box" id="pickup-section">
+    <h3>Pickup and Delivery</h3>
+    <p style="margin-top:8px; color:#333; font-size:14px;">Package pickup & delivery experiment video.</p>
+    <video controls playsinline>
+      <source src="pp.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <script>
+    // Slideshow functionality
+    function initSlideshow(config) {
+      const section = document.getElementById(config.sectionId);
+      if (!section) return;
+
+      const slides = section.querySelectorAll(config.slideSelector);
+      const indicators = section.querySelectorAll(config.indicatorSelector);
+      const prevBtn = document.getElementById(config.prevBtnId);
+      const nextBtn = document.getElementById(config.nextBtnId);
+      const currentSlideSpan = document.getElementById(config.currentSlideId);
+      const totalSlidesSpan = document.getElementById(config.totalSlidesId);
+      let currentSlideIndex = 0;
+
+      function showSlide(index) {
+        slides.forEach(slide => slide.classList.remove('active'));
+        indicators.forEach(indicator => indicator.classList.remove('active'));
+
+        slides[index].classList.add('active');
+        indicators[index].classList.add('active');
+
+        if (currentSlideSpan) {
+          currentSlideSpan.textContent = index + 1;
+        }
+
+        if (prevBtn) {
+          prevBtn.disabled = index === 0;
+        }
+
+        if (nextBtn) {
+          nextBtn.disabled = index === slides.length - 1;
+        }
+      }
+
+      function nextSlide() {
+        if (currentSlideIndex < slides.length - 1) {
+          currentSlideIndex++;
+          showSlide(currentSlideIndex);
+        }
+      }
+
+      function prevSlide() {
+        if (currentSlideIndex > 0) {
+          currentSlideIndex--;
+          showSlide(currentSlideIndex);
+        }
+      }
+
+      function goToSlide(index) {
+        currentSlideIndex = index;
+        showSlide(currentSlideIndex);
+      }
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', nextSlide);
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', prevSlide);
+      }
+
+      if (config.enableIndicators !== false) {
+        indicators.forEach((indicator, index) => {
+          indicator.addEventListener('click', () => goToSlide(index));
+        });
+      }
+
+      if (config.autoAdvanceMs > 0 && slides.length > 1) {
+        setInterval(() => {
+          if (currentSlideIndex < slides.length - 1) {
+            nextSlide();
+          } else {
+            goToSlide(0);
+          }
+        }, config.autoAdvanceMs);
+      }
+
+      if (totalSlidesSpan) {
+        totalSlidesSpan.textContent = slides.length;
+      }
+
+      showSlide(0);
+    }
+
+    initSlideshow({
+      sectionId: 'image-slideshow-section',
+      slideSelector: '.image-slide',
+      indicatorSelector: '.indicator',
+      prevBtnId: 'imgPrevBtn',
+      nextBtnId: 'imgNextBtn',
+      currentSlideId: 'imgCurrentSlide',
+      totalSlidesId: 'imgTotalSlides',
+      autoAdvanceMs: 0,
+      enableIndicators: false
+    });
+
+    initSlideshow({
+      sectionId: 'slideshow-section',
+      slideSelector: '.slide',
+      indicatorSelector: '.indicator',
+      prevBtnId: 'prevBtn',
+      nextBtnId: 'nextBtn',
+      currentSlideId: 'currentSlide',
+      totalSlidesId: 'totalSlides',
+      autoAdvanceMs: 0
+    });
+    
+    
+    // Form submission
+    document.getElementById('form-section').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Collect all input values
+      const params = [
+        'task1_x','task1_y','task1_theta',
+        'task2_x','task2_y','task2_theta',
+        'robot1_x','robot1_y','robot1_theta',
+        'robot2_x','robot2_y','robot2_theta'
+      ].map(id => `${id}=${encodeURIComponent(document.getElementById(id).value)}`).join('&');
+      window.location.href = `graph_withfactorsTA.html?${params}`;
+    }); 
+
+      // Real World video: mute (already muted attribute), set 3x speed, autoplay if possible,
+      // and stop (pause) when reaching 51 seconds.
+      (function() {
+        const rwVideo = document.querySelector('#realworld-section video');
+        if (!rwVideo) return;
+
+        // Ensure muted and set playback rate
+        try {
+          rwVideo.muted = true;
+          rwVideo.playbackRate = 3.0;
+        } catch (e) {}
+
+        // Try to autoplay (muted autoplay is usually allowed)
+        const p = rwVideo.play();
+        if (p && typeof p.then === 'function') {
+          p.catch(() => {});
+        }
+
+        // Pause when reaching 51 seconds
+        function checkStop() {
+          if (rwVideo.currentTime >= 51) {
+            rwVideo.pause();
+            rwVideo.removeEventListener('timeupdate', checkStop);
+          }
+        }
+
+        rwVideo.addEventListener('timeupdate', checkStop);
+        // In case metadata isn't loaded yet, ensure we set rate after metadata
+        rwVideo.addEventListener('loadedmetadata', () => {
+          try { rwVideo.playbackRate = 3.0; } catch (e) {}
+        });
+      })();
+
+        // Position Pursuit Evasion box directly below the Real World section
+        (function() {
+          const realworld = document.getElementById('realworld-section');
+          const pursuit = document.getElementById('pursuit-section');
+          if (!realworld || !pursuit) return;
+
+          function positionPursuit() {
+            // Get distance from document top to bottom of realworld section
+            const rect = realworld.getBoundingClientRect();
+            const docTop = window.scrollY || window.pageYOffset;
+            const bottomY = docTop + rect.top + realworld.offsetHeight;
+            // Add small gap
+            const gap = 20; // px
+            pursuit.style.top = (bottomY + gap) + 'px';
+          }
+
+          // Run after load to ensure sizes are known
+          window.addEventListener('load', positionPursuit);
+          window.addEventListener('resize', positionPursuit);
+          // Also run after a short timeout in case layout changes
+          setTimeout(positionPursuit, 300);
+        })();
+
+        // Position Pickup and Delivery box directly below the Pursuit Evasion section
+        (function() {
+          const pursuit = document.getElementById('pursuit-section');
+          const pickup = document.getElementById('pickup-section');
+          if (!pursuit || !pickup) return;
+
+          function positionPickup() {
+            const rect = pursuit.getBoundingClientRect();
+            const docTop = window.scrollY || window.pageYOffset;
+            const bottomY = docTop + rect.top + pursuit.offsetHeight;
+            const gap = 20; // px
+            pickup.style.top = (bottomY + gap) + 'px';
+          }
+
+          window.addEventListener('load', positionPickup);
+          window.addEventListener('resize', positionPickup);
+          setTimeout(positionPickup, 400);
+        })();
+
+        // Dynamically position main sections sequentially to avoid collisions
+        (function() {
+          function positionSequentially() {
+            const ids = [
+              'title-section',
+              'abstract-section',
+              'pdf-section',
+              'image-slideshow-section',
+              'slideshow-section',
+              'form-section',
+              'hardware-section',
+              'comparison-section',
+              'realworld-section',
+              'pursuit-section',
+              'pickup-section'
+            ];
+
+            const gap = 30; // px gap between sections
+            const docTop = window.scrollY || window.pageYOffset;
+
+            let prevBottom = 0;
+
+            ids.forEach(id => {
+              const el = document.getElementById(id);
+              if (!el) return;
+
+              const rect = el.getBoundingClientRect();
+              const elTopAbs = docTop + rect.top;
+              const elBottomAbs = elTopAbs + el.offsetHeight;
+
+              if (prevBottom === 0) {
+                // Keep the element's current position as first reference
+                prevBottom = elBottomAbs;
+                return;
+              }
+
+              const newTop = prevBottom + gap;
+              el.style.top = newTop + 'px';
+              prevBottom = newTop + el.offsetHeight;
+            });
+          }
+
+          function schedulePosition() {
+            positionSequentially();
+            setTimeout(positionSequentially, 150);
+            setTimeout(positionSequentially, 600);
+            setTimeout(positionSequentially, 1200);
+          }
+
+          window.addEventListener('load', schedulePosition);
+          window.addEventListener('resize', schedulePosition);
+
+          // Reposition when images or other media load
+          const media = document.querySelectorAll('img, video');
+          media.forEach(m => {
+            if (!m.complete) m.addEventListener('load', schedulePosition);
+            if (m.tagName === 'VIDEO') m.addEventListener('loadedmetadata', schedulePosition);
+          });
+
+          // PDF image click handler: accepts direct URL or GitHub blob URL and converts to raw link
+          const pdfImage = document.getElementById('pdf-image');
+          if (pdfImage) {
+            pdfImage.addEventListener('click', () => {
+              let url = pdfImage.getAttribute('data-pdf-url');
+              if (!url || !url.trim()) return;
+              url = url.trim();
+              if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+              const toRawGithub = (u) => {
+                try {
+                  const parsed = new URL(u);
+                  if (parsed.hostname.toLowerCase() === 'github.com') {
+                    const parts = parsed.pathname.split('/').filter(Boolean);
+                    const blobIndex = parts.indexOf('blob');
+                    if (blobIndex !== -1 && parts.length > blobIndex + 1) {
+                      const user = parts[0];
+                      const repo = parts[1];
+                      const branch = parts[blobIndex + 1];
+                      const filePath = parts.slice(blobIndex + 2).join('/');
+                      return `https://raw.githubusercontent.com/${user}/${repo}/${branch}/${filePath}`;
+                    }
+                  }
+                } catch (e) {}
+                return u;
+              };
+
+              const rawUrl = toRawGithub(url);
+              try { window.open(rawUrl, '_blank'); } catch (e) { location.href = rawUrl; }
+            });
+          }
+        })();
+  </script>
+</body>
+</html>

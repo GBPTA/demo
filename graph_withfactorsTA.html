@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Graph with Node and Factor Labels</title>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+    .main-flex {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      margin: 0;
+      padding: 0;
+    }
+    .input-panel {
+      min-width: 260px;
+      max-width: 320px;
+      background: #f7f7f7;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 18px 18px 12px 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      margin: 24px 0 0 24px;
+    }
+    .pose-input-group {
+      margin-bottom: 12px;
+    }
+    .pose-input-group label {
+      font-weight: bold;
+    }
+    .pose-input-group input[type="number"] {
+      width: 60px;
+      margin-right: 2px;
+      margin-bottom: 2px;
+    }
+    #resetHalosBtn {
+      width: 100%;
+      margin: 0 0 10px 0;
+    }
+    #distanceOutput {
+      margin-top: 10px;
+      font-size: 14px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      background: #f9f9f9;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .graph-panel {
+      flex: 1;
+      min-width: 0;
+      margin-top: 24px;
+      margin-right: 24px;
+    }
+    #mynetwork {
+      width: 100%;
+      height: 700px;
+      position: relative;
+      border: 1px solid lightgray;
+    }
+    canvas.halo-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .message-dot {
+      width: 8px;
+      height: 8px;
+      background-color: red;
+      border-radius: 50%;
+      position: absolute;
+      z-index: 100;
+      pointer-events: none;
+      box-shadow: 0 0 4px rgba(255,0,0,0.8);
+    }
+    .math-label {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      white-space: nowrap;
+      z-index: 20;
+    }
+    .node-value-label {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-50%, -180%);
+      font-size: 16px;
+      font-weight: bold;
+      color: #222;
+      background: rgba(255,255,255,0.7);
+      padding: 2px 6px;
+      border-radius: 6px;
+      z-index: 25;
+    }
+    .factor-label {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-180%, -50%);
+      font-size: 14px;
+      z-index: 20;
+      color: black;
+    }
+    .factor-label-right {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-10%, -50%);
+      font-size: 14px;
+      z-index: 20;
+      color: black;
+    }
+    .above-label {
+      position: absolute;
+      pointer-events: none;
+      transform: translate(-50%, -250%);
+      font-size: 15px;
+      font-weight: bold;
+      color: #1976d2;
+      background: rgba(255,255,255,0.85);
+      padding: 2px 8px;
+      border-radius: 6px;
+      z-index: 30;
+      white-space: nowrap;
+    }
+    
+    .map-container {
+      width: 300px;
+      height: 300px;
+      border: 2px solid #333;
+      background: #f0f0f0;
+      position: relative;
+      margin: 20px 0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .map-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    
+    .map-entity {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      transform: translate(-50%, -50%);
+    }
+    
+    .task-entity {
+      background: red;
+    }
+    
+    .robot-entity {
+      background: green;
+    }
+    
+    .entity-label {
+      position: absolute;
+      background: rgba(255,255,255,0.9);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+      transform: translate(-50%, -100%);
+      margin-top: -5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-flex">
+    <!-- Input Panel -->
+    <div class="input-panel">
+<div class="pose-input-group">
+  <label for="task1_x">Task 1 pose:</label><br>
+  <input type="number" id="task1_x" placeholder="x" step="any" value="0">
+  <input type="number" id="task1_y" placeholder="y" step="any" value="0">
+  <input type="number" id="task1_theta" placeholder="θ" step="any" value="0">
+</div>
+<div class="pose-input-group">
+  <label for="task2_x">Task 2 pose:</label><br>
+  <input type="number" id="task2_x" placeholder="x" step="any" value="500">
+  <input type="number" id="task2_y" placeholder="y" step="any" value="0">
+  <input type="number" id="task2_theta" placeholder="θ" step="any" value="0">
+</div>
+<div class="pose-input-group">
+  <label for="robot1_x">Robot 1 pose:</label><br>
+  <input type="number" id="robot1_x" placeholder="x" step="any" value="0">
+  <input type="number" id="robot1_y" placeholder="y" step="any" value="500">
+  <input type="number" id="robot1_theta" placeholder="θ" step="any" value="0">
+</div>
+<div class="pose-input-group">
+  <label for="robot2_x">Robot 2 pose:</label><br>
+  <input type="number" id="robot2_x" placeholder="x" step="any" value="500">
+  <input type="number" id="robot2_y" placeholder="y" step="any" value="500">
+  <input type="number" id="robot2_theta" placeholder="θ" step="any" value="0">
+</div>
+      <div class="map-container">
+        <div class="map-grid"></div>
+        <div id="map-entities"></div>
+      </div>
+      <button id="resetHalosBtn">Start Animation</button>
+      <div id="distanceOutput"></div>
+    </div>
+    <!-- Graph Panel -->
+<div class="graph-panel">
+  <!-- Legend goes here -->
+  <div style="margin-bottom: 12px; color: #000; font-size: 15px;">
+    <b>Legend:</b>
+    <span style="display:inline-block; margin-left:12px;">
+      <span style="display:inline-block; width:16px; height:16px; background:red; border-radius:50%; border:1px solid #fff; vertical-align:middle;"></span>
+      <span style="margin-left:4px; vertical-align:middle;">Task Pose</span>
+    </span>
+    <span style="display:inline-block; margin-left:12px;">
+      <span style="display:inline-block; width:16px; height:16px; background:green; border-radius:50%; border:1px solid #fff; vertical-align:middle;"></span>
+      <span style="margin-left:4px; vertical-align:middle;">Robot Pose</span>
+    </span>
+    <span style="display:inline-block; margin-left:12px;">
+      <span style="display:inline-block; width:16px; height:16px; background:yellow; border-radius:50%; border:1px solid #fff; vertical-align:middle;"></span>
+      <span style="margin-left:4px; vertical-align:middle;">State of Tasks</span>
+    </span>
+    <span style="display:inline-block; margin-left:12px;">
+      <span style="display:inline-block; width:16px; height:16px; background:grey; border-radius:50%; border:1px solid #fff; vertical-align:middle;"></span>
+      <span style="margin-left:4px; vertical-align:middle;">Regret of Tasks</span>
+    </span>
+    <span style="display:inline-block; margin-left:12px;">
+      <span style="display:inline-block; width:16px; height:16px; background:lightblue; border-radius:50%; border:1px solid #fff; vertical-align:middle;"></span>
+      <span style="margin-left:4px; vertical-align:middle;">Softmin Weights</span>
+    </span>
+    <span style="display:inline-block; margin-left:12px;">
+      <span style="display:inline-block; width:16px; height:16px; background:cyan; border-radius:50%; border:1px solid #fff; vertical-align:middle;"></span>
+      <span style="margin-left:4px; vertical-align:middle;">Convergance Status</span>
+    </span>
+    <span style="display:inline-block; margin-left:12px;">
+      <span style="display:inline-block; width:16px; height:16px; background:black; border-radius:50%; border:1px solid #fff; vertical-align:middle;"></span>
+      <span style="margin-left:4px; vertical-align:middle;">Factor Node</span>
+    </span>
+  </div>
+  <div id="mynetwork"></div>
+</div>
+  </div>
+  <div style="color:#222; background:#f7f7f7; border-radius:8px; padding:12px; margin-bottom:18px; font-size:17px;">
+  <b>Factor Equations:</b>
+  <div>
+    \( h^{r}(\mathbf{r}^i_t) = \mathbf{r}^i_t \)
+  </div>
+  <div>
+    \( f^{c}(\mathbf{c}^i_t) = \mathbf{c}^i_t \)
+  </div>
+  <div>
+    \( h^{ct}(\mathbf{c}^i_t,\mathbf{c}^j_t,\mathbf{r}^i_t,\mathbf{r}^j_t) =  \begin{bmatrix}
+\mathbf{w}^1_t \\
+\mathbf{w}^2_t
+\end{bmatrix}
+-
+\begin{bmatrix}% \end{bmatrix}
+\mathbf{c}^i_t \\
+\mathbf{c}^j_t
+\end{bmatrix} \)
+  </div>
+  <div>
+    \( h^{a}(\mathbf{c}^i_t,\mathbf{a}^i_t) = \ \frac{e^{-\beta \mathbf{c}^i_t}}{\sum_{j=1}^{n} e^{-\beta c^{ij}_t}}-\mathbf{a}^i_t. \)
+  </div>
+  <div>
+    \( h^{cv}(\mathbf{a}^i_t,\mathbf{a}^j_t) = \sum_{i=1}^{N_p} \sum_{j=i+1}^{N_p} (\mathbf{a}^i_t)^\top \mathbf{a}^j_t - cv_t \)
+  </div>
+</div>
+<script>
+  const DEFAULT_RADIUS = 50;
+  const MIN_RADIUS = 10;
+  const SHRINK_STEP = 5;
+
+  const nodeData = [
+    { id: 1, x: -150, y: 0, fixed: true, color: {background: 'red', border: 'red'}, size: 25 },
+    { id: 3, x: 150, y: 0, fixed: true, color: {background: 'red', border: 'red'}, size: 25 },
+    { id: 4, x: 0, y: -150, fixed: true, color: {background: 'green', border: 'green'}, size: 25 },
+    { id: 5, x: 0, y: 150, fixed: true, color: {background: 'green', border: 'green'}, size: 25 },
+    { id: 6, x: -150, y: 450, fixed: true, color: {background: 'grey', border: 'grey'}, size: 25 },
+    { id: 8, x: 150, y: 450, fixed: true, color: {background: 'grey', border: 'grey'}, size: 25 },
+    { id: 9, x: 0, y: 300, fixed: true, color: {background: 'yellow', border: 'yellow'}, size: 25 },
+    { id: 10, x: 0, y: 600, fixed: true, color: {background: 'yellow', border: 'yellow'}, size: 25 },
+    { id: 11, x: -200, y: 450, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 12, x: 200, y: 450, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 13, x: 0, y: 250, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 14, x: 0, y: 650, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 15, x: 200, y: 300, fixed: true, color: {background: 'lightblue', border: 'lightblue'}, size: 25 },
+    { id: 16, x: 200, y: 600, fixed: true, color: {background: 'lightblue', border: 'lightblue'}, size: 25 },
+    { id: 17, x: 450, y: 450, fixed: true, color: {background: 'cyan', border: 'white'}, size: 25 },
+    { id: 41, x: -75, y: -75, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 43, x: 75, y: -75, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 46, x: -75, y: 75, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 48, x: 75, y: 75, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 49, x: 0, y: 450, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 50, x: 100, y: 300, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 51, x: 100, y: 600, fixed: true, color: {background: 'black', border: 'black'}, size: 5 },
+    { id: 52, x: 300, y: 450, fixed: true, color: {background: 'black', border: 'black'}, size: 5 }
+  ];
+
+  const mathLabels = {
+    1: '\\(x^{q_1}_{t}\\)',
+    3: '\\(x^{q_2}_{t}\\)',
+    4: '\\(x^{p_1}_t\\)',
+    5: '\\(x^{p_2}_t\\)',
+    6:'\\(r^{1}_t\\)',
+    8:'\\(r^{2}_t\\)',
+    9:'\\(c^{1}_t\\)',
+    10:'\\(c^{2}_t\\)',
+    15:'\\(a^{1}_t\\)',
+    16:'\\(a^{2}_t\\)',
+    17:'\\(cv_t\\)'
+  };
+
+  const storedValues = {
+    1: "",
+    3: "",
+    4: "",
+    5: "",
+    6: "",
+    8: "",
+    9: "",
+    10: "",
+    15: "",
+    16: "",
+    17: "",
+    49: "",
+    50: "",
+    51: "",
+    52: ""
+  };
+
+  const aboveLabels = {
+    15: "",
+    16: "",
+    17: ""
+  };
+
+  const edgesData = [
+    { from: 1, to: 41 },
+    { from: 4, to: 41 },
+    { from: 3, to: 43 },
+    { from: 4, to: 43 },
+    { from: 5, to: 46 },
+    { from: 1, to: 46 },
+    { from: 3, to: 48 },
+    { from: 5, to: 48 },
+    { from: 41, to: 1 },
+    { from: 41, to: 4 }, 
+    { from: 43, to: 3 },
+    { from: 46, to: 5 },
+    { from: 46, to: 1 },
+    { from: 48, to: 3 },
+    { from: 48, to: 5 },
+    { from: 17, to: 52 },
+    { from: 16, to: 52 },
+    { from: 15, to: 52 },
+    { from: 52, to: 17 },
+    { from: 52, to: 16 },
+    { from: 52, to: 15 },
+    {from: 13, to: 9},
+    {from: 14, to: 10},
+    { from: 11, to: 6 },
+    { from: 12, to: 8 },
+    { from: 6, to: 49 },
+    { from: 8, to: 49 },
+    { from: 9, to: 49 },
+    { from: 10, to: 49 },
+    { from: 49, to: 6 },
+    { from: 49, to: 8 },
+    { from: 49, to: 9 },
+    { from: 49, to: 10 },
+    { from: 10, to: 51 },
+    { from: 9, to: 50 },
+    { from: 15, to: 50 },
+    { from: 16, to: 51 },
+    { from: 50, to: 9 },
+    { from: 51, to: 10 },
+    { from: 50, to: 15 },
+    { from: 51, to: 16 }
+  ];
+
+  const factorLabels = {
+    0: '\\(f^{mp_2}_{t-2}\\)',
+    1: '\\(f^{mp_2}_{t-1}\\)',
+    2: '\\(f^{mp_2}_{t}\\)',
+    3: '\\(f^{mp_1}_{t-2}\\)',
+    4: '\\(f^{mp_1}_{t-1}\\)',
+    5: '\\(f^{mp_1}_{t}\\)',
+    6: '\\(f^{dq}_{t-1}\\)',
+    7: '\\(f^{dq}_{t}\\)'
+  };
+
+  const nodes = new vis.DataSet(nodeData);
+  const edges = new vis.DataSet(edgesData);
+
+  const container = document.getElementById("mynetwork");
+  const network = new vis.Network(container, { nodes, edges }, {
+    nodes: {
+      shape: 'dot',
+      font: { size: 0 }
+    },
+    edges: {
+      color: 'gray',
+      width: 2
+    },
+    physics: { enabled: false },
+    interaction: {
+      dragNodes: false,
+      dragView: true,
+      zoomView: false
+    }
+  });
+
+  const haloRadii = {};
+  nodeData.forEach(n => haloRadii[n.id] = DEFAULT_RADIUS);
+
+  const haloCanvas = document.createElement('canvas');
+  haloCanvas.className = 'halo-layer';
+  container.appendChild(haloCanvas);
+  const haloCtx = haloCanvas.getContext('2d');
+
+  const overlayContainer = document.createElement('div');
+  overlayContainer.style.position = 'absolute';
+  overlayContainer.style.top = '0';
+  overlayContainer.style.left = '0';
+  overlayContainer.style.width = '100%';
+  overlayContainer.style.height = '100%';
+  overlayContainer.style.pointerEvents = 'none';
+  container.appendChild(overlayContainer);
+
+  // Math labels
+  const labelDivs = {};
+  for (const id in mathLabels) {
+    const div = document.createElement('div');
+    div.className = 'math-label';
+    div.id = 'label-' + id;
+    div.innerHTML = mathLabels[id];
+    overlayContainer.appendChild(div);
+    labelDivs[id] = div;
+  }
+
+  // Value labels
+  const valueDivs = {};
+  for (const id in storedValues) {
+    const div = document.createElement('div');
+    div.className = 'node-value-label';
+    div.id = 'value-' + id;
+    div.textContent = storedValues[id];
+    overlayContainer.appendChild(div);
+    valueDivs[id] = div;
+  }
+
+  // Above-labels for a^1_t, a^2_t, cv_t
+  const aboveLabelDivs = {};
+  [15, 16, 17].forEach(id => {
+    const div = document.createElement('div');
+    div.className = 'node-value-label'
+    div.id = 'value-' + id;
+    div.textContent = aboveLabels[id];
+    overlayContainer.appendChild(div);
+    aboveLabelDivs[id] = div;
+  });
+
+  // Custom label for node 41: f^mp_{11}
+  const node41Label = document.createElement('div');
+  node41Label.className = 'factor-label';
+  node41Label.innerHTML = '\\(f^{mp_{11}}\\)';
+  overlayContainer.appendChild(node41Label);
+
+  const node43Label = document.createElement('div');
+  node43Label.className = 'factor-label-right';
+  node43Label.innerHTML = '\\(f^{mp_{12}}\\)';
+  overlayContainer.appendChild(node43Label);
+
+  const node48Label = document.createElement('div');
+  node48Label.className = 'factor-label-right';
+  node48Label.innerHTML = '\\(f^{mp_{22}}\\)';
+  overlayContainer.appendChild(node48Label);
+
+  const node46Label = document.createElement('div');
+  node46Label.className = 'factor-label';
+  node46Label.innerHTML = '\\(f^{mp_{12}}\\)';
+  overlayContainer.appendChild(node46Label);
+
+  const node11Label = document.createElement('div');
+  node11Label.className = 'factor-label';
+  node11Label.innerHTML = '\\(f^{r_{1}}\\)';
+  overlayContainer.appendChild(node11Label);
+
+  const node12Label = document.createElement('div');
+  node12Label.className = 'factor-label-right';
+  node12Label.innerHTML = '\\(f^{r_{2}}\\)';
+  overlayContainer.appendChild(node12Label);
+
+  const node13Label = document.createElement('div');
+  node13Label.className = 'factor-label-right';
+  node13Label.innerHTML = '\\(f^{c_{1}}\\)';
+  overlayContainer.appendChild(node13Label);
+
+    const node14Label = document.createElement('div');
+  node14Label.className = 'factor-label-right';
+  node14Label.innerHTML = '\\(f^{c_{2}}\\)';
+  overlayContainer.appendChild(node14Label);
+
+  const node49Label = document.createElement('div');
+  node49Label.className = 'factor-label-right';
+  node49Label.innerHTML = '\\(f^{ct_{12}}\\)';
+  overlayContainer.appendChild(node49Label);
+
+
+  // const node50Label = document.createElement('div');
+  // node50Label.className = 'factor-label';
+  // node50Label.innerHTML = '\\(f^{a_{1}}\\)';
+  // overlayContainer.appendChild(node50Label);
+
+  const node50Label = document.createElement('div');
+  node50Label.className = 'factor-label-right';
+  node50Label.innerHTML = '\\(f^{a_{1}}\\)';
+  overlayContainer.appendChild(node50Label);
+
+  const node51Label = document.createElement('div');
+  node51Label.className = 'factor-label-right';
+  node51Label.innerHTML = '\\(f^{a_{2}}\\)';
+  overlayContainer.appendChild(node51Label);
+
+
+  const node52Label = document.createElement('div');
+  node52Label.className = 'factor-label-right';
+  node52Label.innerHTML = '\\(f^{cv}\\)';
+  overlayContainer.appendChild(node52Label);
+
+
+  function resizeCanvas() {
+    haloCanvas.width = container.offsetWidth;
+    haloCanvas.height = container.offsetHeight;
+  }
+
+  function updateLabelPositions() {
+    const positions = network.getPositions(Object.keys(mathLabels));
+    for (const nodeId in positions) {
+      const pos = network.canvasToDOM(positions[nodeId]);
+      const div = labelDivs[nodeId];
+      div.style.left = pos.x + 'px';
+      div.style.top = pos.y + 'px';
+    }
+    // Value labels
+    const valuePositions = network.getPositions(Object.keys(storedValues));
+    for (const nodeId in valuePositions) {
+      const pos = network.canvasToDOM(valuePositions[nodeId]);
+      const div = valueDivs[nodeId];
+      div.style.left = pos.x + 'px';
+      div.style.top = pos.y + 'px';
+    }
+    // Above-labels
+    [15, 16, 17].forEach(id => {
+      const pos = network.getPositions([id])[id];
+      if (!pos) return;
+      const domPos = network.canvasToDOM(pos);
+      const div = aboveLabelDivs[id];
+      div.style.left = domPos.x + 'px';
+      div.style.top = domPos.y + 'px';
+    });
+    // Position the custom label beside node 41
+    const pos41 = network.getPositions([41])[41];
+    if (pos41) {
+      const dom41 = network.canvasToDOM(pos41);
+      node41Label.style.left = (dom41.x + 18) + 'px'; // 18px to the right
+      node41Label.style.top = (dom41.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node41Label]);
+    const pos43 = network.getPositions([43])[43];
+    if (pos43) {
+      const dom43 = network.canvasToDOM(pos43);
+      node43Label.style.left = (dom43.x + 18) + 'px'; // 18px to the right
+      node43Label.style.top = (dom43.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node43Label]);
+  
+
+      MathJax.typesetPromise([node48Label]);
+    const pos48 = network.getPositions([48])[48];
+    if (pos48) {
+      const dom48 = network.canvasToDOM(pos48);
+      node48Label.style.left = (dom48.x + 18) + 'px'; // 18px to the right
+      node48Label.style.top = (dom48.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node48Label]);
+  
+
+      MathJax.typesetPromise([node46Label]);
+    const pos46 = network.getPositions([46])[46];
+    if (pos46) {
+      const dom46 = network.canvasToDOM(pos46);
+      node46Label.style.left = (dom46.x + 18) + 'px'; // 18px to the right
+      node46Label.style.top = (dom46.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node46Label]);
+
+     MathJax.typesetPromise([node11Label]);
+    const pos11 = network.getPositions([11])[11];
+    if (pos11) {
+      const dom11 = network.canvasToDOM(pos11);
+      node11Label.style.left = (dom11.x + 18) + 'px'; // 18px to the right
+      node11Label.style.top = (dom11.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node11Label]);
+
+     MathJax.typesetPromise([node12Label]);
+    const pos12 = network.getPositions([12])[12];
+    if (pos12) {
+      const dom12 = network.canvasToDOM(pos12);
+      node12Label.style.left = (dom12.x + 18) + 'px'; // 18px to the right
+      node12Label.style.top = (dom12.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node12Label]);
+     MathJax.typesetPromise([node13Label]);
+    const pos13 = network.getPositions([13])[13];
+    if (pos13) {
+      const dom13 = network.canvasToDOM(pos13);
+      node13Label.style.left = (dom13.x + 18) + 'px'; // 18px to the right
+      node13Label.style.top = (dom13.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node13Label]);
+     MathJax.typesetPromise([node14Label]);
+    const pos14 = network.getPositions([14])[14];
+    if (pos14) {
+      const dom14 = network.canvasToDOM(pos14);
+      node14Label.style.left = (dom14.x + 18) + 'px'; // 18px to the right
+      node14Label.style.top = (dom14.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node14Label]);
+     MathJax.typesetPromise([node49Label]);
+    const pos49 = network.getPositions([49])[49];
+    if (pos49) {
+      const dom49 = network.canvasToDOM(pos49);
+      node49Label.style.left = (dom49.x + 18) + 'px'; // 18px to the right
+      node49Label.style.top = (dom49.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node49Label]);
+
+     MathJax.typesetPromise([node50Label]);
+    const pos50 = network.getPositions([50])[50];
+    if (pos50) {
+      const dom50 = network.canvasToDOM(pos50);
+      node50Label.style.left = (dom50.x + 18) + 'px'; // 18px to the right
+      node50Label.style.top = (dom50.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node50Label]);
+     MathJax.typesetPromise([node51Label]);
+    const pos51 = network.getPositions([51])[51];
+    if (pos51) {
+      const dom51 = network.canvasToDOM(pos51);
+      node51Label.style.left = (dom51.x + 18) + 'px'; // 18px to the right
+      node51Label.style.top = (dom51.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node51Label]);
+     MathJax.typesetPromise([node52Label]);
+    const pos52 = network.getPositions([52])[52];
+    if (pos52) {
+      const dom52 = network.canvasToDOM(pos52);
+      node52Label.style.left = (dom52.x + 18) + 'px'; // 18px to the right
+      node52Label.style.top = (dom52.y - 8) + 'px';   // slightly above center
+    }
+    MathJax.typesetPromise([node52Label]);
+  }
+
+  
+
+
+
+
+  function drawHalos() {
+    haloCtx.clearRect(0, 0, haloCanvas.width, haloCanvas.height);
+    const positions = network.getPositions(nodes.getIds());
+    for (let nodeId of nodes.getIds()) {
+      if (nodeId >= 11 && nodeId !== 15 && nodeId !== 16 && nodeId !== 17) continue;
+      const node = nodes.get(nodeId);
+      const pos = network.canvasToDOM(positions[nodeId]);
+      const radius = haloRadii[nodeId];
+      if (radius > 0) {
+        haloCtx.beginPath();
+        haloCtx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
+        haloCtx.fillStyle = convertToRGBA(node.color.background, 0.25);
+        haloCtx.fill();
+      }
+    }
+  }
+
+  function convertToRGBA(color, alpha) {
+    const tempDiv = document.createElement("div");
+    tempDiv.style.color = color;
+    document.body.appendChild(tempDiv);
+    const computedColor = getComputedStyle(tempDiv).color;
+    document.body.removeChild(tempDiv);
+    const rgbMatch = computedColor.match(/\d+/g);
+    if (!rgbMatch) return `rgba(200, 200, 200, ${alpha})`;
+    const [r, g, b] = rgbMatch.map(Number);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function drawFactorSquares() {
+    // Store any existing message dots before clearing
+    const messageDots = overlayContainer.querySelectorAll('.message-dot');
+    const dotsToPreserve = Array.from(messageDots);
+    
+    overlayContainer.innerHTML = '';
+    
+    // Add value and math labels back to overlay
+    Object.values(labelDivs).forEach(div => overlayContainer.appendChild(div));
+    Object.values(valueDivs).forEach(div => overlayContainer.appendChild(div));
+    Object.values(aboveLabelDivs).forEach(div => overlayContainer.appendChild(div));
+    overlayContainer.appendChild(node41Label); // re-add custom label
+    overlayContainer.appendChild(node43Label);
+    overlayContainer.appendChild(node48Label);
+    overlayContainer.appendChild(node11Label);
+    overlayContainer.appendChild(node12Label);
+    overlayContainer.appendChild(node13Label);
+    overlayContainer.appendChild(node14Label);
+    overlayContainer.appendChild(node49Label);
+    overlayContainer.appendChild(node50Label);
+    overlayContainer.appendChild(node51Label);
+    overlayContainer.appendChild(node52Label);
+    
+    // Re-add any message dots that were animating
+    dotsToPreserve.forEach(dot => overlayContainer.appendChild(dot));
+    const edgesList = edges.get();
+    const positions = network.getPositions(nodes.getIds());
+    edgesList.forEach((edge, index) => {
+      if (index >= edgesList.length - 4) return;
+      const fromPos = network.canvasToDOM(positions[edge.from]);
+      const toPos = network.canvasToDOM(positions[edge.to]);
+      const midX = (fromPos.x + toPos.x) / 2;
+      const midY = (fromPos.y + toPos.y) / 2;
+      const square = document.createElement('div');
+      square.style.width = '14px';
+      square.style.height = '14px';
+      square.style.backgroundColor = 'black';
+      square.style.position = 'absolute';
+      square.style.left = `${midX - 7}px`;
+      square.style.top = `${midY - 7}px`;
+      square.style.borderRadius = '2px';
+      square.style.pointerEvents = 'none';
+      overlayContainer.appendChild(square);
+      const label = document.createElement('div');
+      label.className = 'factor-label-right';
+      label.innerHTML = factorLabels[index] || '';
+      label.style.left = `${midX}px`;
+      label.style.top = `${midY - 18}px`;
+      overlayContainer.appendChild(label);
+    });
+    MathJax.typesetPromise([overlayContainer]);
+  }
+
+  network.on("afterDrawing", () => {
+    drawHalos();
+    updateLabelPositions();
+  });
+
+  window.addEventListener("resize", () => {
+    resizeCanvas();
+    drawHalos();
+    updateLabelPositions();
+  });
+
+  // --- Regret and cost values must be accessible globally for animateMessage ---
+  let rc11 = 0, rc12 = 0, rc21 = 0, rc22 = 0;
+  let d11 = 0, d12 = 0, d21 = 0, d22 = 0;
+  let weights1 = [0, 0], weights2 = [0, 0], sum = 0;
+
+  // --- Message animation function ---
+  function animateMessage(fromId, toId, positions, callback) {
+    const from = network.canvasToDOM(positions[fromId]);
+    const to = network.canvasToDOM(positions[toId]);
+    
+    const dot = document.createElement('div');
+    dot.className = 'message-dot';
+    dot.style.left = from.x + 'px';
+    dot.style.top = from.y + 'px';
+    overlayContainer.appendChild(dot);
+
+    let progress = 0;
+    const steps = 30;
+    function move() {
+      progress++;
+      const x = from.x + (to.x - from.x) * (progress / steps);
+      const y = from.y + (to.y - from.y) * (progress / steps);
+      dot.style.left = x + 'px';
+      dot.style.top = y + 'px';
+      if (progress < steps) {
+        requestAnimationFrame(move);
+      } else {
+        overlayContainer.removeChild(dot);
+        // Reduce the halo size for the receiver (toId) when the message arrives
+        const minHalo = 15;
+        const shrinkStep = 10;
+        if (haloRadii[toId] > minHalo) haloRadii[toId] -= shrinkStep;
+        drawHalos();
+
+        // --- Assign and show values for each node when the correct message arrives ---
+        // Grey nodes (6, 8)
+        if (fromId === 11 && toId === 6) {
+          storedValues[6] = `(${rc11.toFixed(2)}, ${rc12.toFixed(2)})`;
+          valueDivs[6].textContent = storedValues[6];
+          highlightValueDiv(6);
+        }
+        if (fromId === 12 && toId === 8) {
+          storedValues[8] = `(${rc21.toFixed(2)}, ${rc22.toFixed(2)})`;
+          valueDivs[8].textContent = storedValues[8];
+          highlightValueDiv(8);
+        }
+        // Yellow nodes (9, 10)
+        if (fromId === 13 && toId === 9) {
+          storedValues[9] = `(${d11.toFixed(2)}, ${d12.toFixed(2)})`;
+          valueDivs[9].textContent = storedValues[9];
+          highlightValueDiv(9);
+        }
+        if (fromId === 14 && toId === 10) {
+          storedValues[10] = `(${d21.toFixed(2)}, ${d22.toFixed(2)})`;
+          valueDivs[10].textContent = storedValues[10];
+          highlightValueDiv(10);
+        }
+        // Lightblue nodes (15, 16)
+        if (fromId === 50 && toId === 15) {
+          storedValues[15] = `(${weights1.map(x => x.toFixed(2)).join(', ')})`;
+          valueDivs[15].textContent = storedValues[15];
+          highlightValueDiv(15);
+          aboveLabels[15] = storedValues[15];
+          aboveLabelDivs[15].textContent = aboveLabels[15];
+        }
+        if (fromId === 51 && toId === 16) {
+          storedValues[16] = `(${weights2.map(x => x.toFixed(2)).join(', ')})`;
+          valueDivs[16].textContent = storedValues[16];
+          highlightValueDiv(16);
+          aboveLabels[16] = storedValues[16];
+          aboveLabelDivs[16].textContent = aboveLabels[16];
+        }
+        // Cyan node (17)
+        if (fromId === 52 && toId === 17) {
+          storedValues[17] = `${sum.toFixed(4)}`;
+          valueDivs[17].textContent = storedValues[17];
+          highlightValueDiv(17);
+          aboveLabels[17] = storedValues[17];
+          aboveLabelDivs[17].textContent = aboveLabels[17];
+        }
+
+        // Show "here" text beside the receiving node
+        const hereDiv = document.createElement('div');
+        hereDiv.textContent = '';
+        hereDiv.style.position = 'absolute';
+        hereDiv.style.left = (to.x + 20) + 'px';
+        hereDiv.style.top = (to.y - 10) + 'px';
+        hereDiv.style.background = 'rgba(255,255,255,0.8)';
+        hereDiv.style.padding = '2px 6px';
+        hereDiv.style.borderRadius = '6px';
+        hereDiv.style.fontSize = '14px';
+        hereDiv.style.color = 'black';
+        hereDiv.style.zIndex = 30;
+        hereDiv.style.pointerEvents = 'none';
+        overlayContainer.appendChild(hereDiv);
+
+        setTimeout(() => {
+          overlayContainer.removeChild(hereDiv);
+          if (callback) callback();
+        }, 700);
+      }
+    }
+    move();
+  }
+
+  // Helper to highlight value div
+  function highlightValueDiv(nodeId) {
+    const valueDiv = valueDivs[nodeId];
+    if (valueDiv) {
+      const prevBg = valueDiv.style.background;
+      const prevColor = valueDiv.style.color;
+      valueDiv.style.background = "#ffe082";
+      valueDiv.style.color = "#000";
+      valueDiv.style.transition = "background 0.3s, color 0.3s";
+      valueDiv.style.zIndex = 100;
+      setTimeout(() => {
+        valueDiv.style.background = prevBg;
+        valueDiv.style.color = prevColor;
+        valueDiv.style.zIndex = 25;
+      }, 1200);
+    }
+  }
+
+  function animateMessagesInTwoGroups() {
+    const allEdges = edges.get();
+    const positions = network.getPositions(nodes.getIds());
+    const orderedEdges = allEdges.filter(edge => positions[edge.from] && positions[edge.to]);
+
+    const firstGroup = orderedEdges.slice(0, 8);
+    const secondGroup = orderedEdges.slice(8, 15);
+    const fifthGroup = orderedEdges.slice(21,25);
+    const sixthGroup = orderedEdges.slice(25, 29);
+    const seventhGroup = orderedEdges.slice(29, 33);
+    const eighthGroup = orderedEdges.slice(33,37);
+    const ninthGroup = orderedEdges.slice(37,41);
+    const tenthGroup = orderedEdges.slice(41,45);
+    const thirdGroup = orderedEdges.slice(15,18);
+    const fourthGroup = orderedEdges.slice(18,21);
+
+    function animateGroup(group, callback) {
+      let finished = 0;
+      if (group.length === 0) {
+        if (callback) callback();
+        return;
+      }
+      group.forEach(edge => {
+        animateMessage(edge.from, edge.to, positions, () => {
+          finished++;
+          if (finished === group.length && callback) callback();
+        });
+      });
+    }
+    const delay = 500;
+    animateGroup(firstGroup, () => {
+      setTimeout(() => animateGroup(secondGroup, () => {
+        setTimeout(() => animateGroup(fifthGroup, () => {
+          setTimeout(() => animateGroup(sixthGroup, () => {
+            setTimeout(() => animateGroup(seventhGroup, () => {
+              setTimeout(() => animateGroup(eighthGroup, () => {
+                setTimeout(() => animateGroup(ninthGroup, () => {
+                  setTimeout(() => animateGroup(tenthGroup, () => {
+                    setTimeout(() => animateGroup(thirdGroup, () => {
+                      setTimeout(() => animateGroup(fourthGroup), delay);
+                    }), delay);
+                  }), delay);
+                }), delay);
+              }), delay);
+            }), delay);
+          }), delay);
+        }), delay);
+      }), delay);
+    });
+  }
+
+    function getParamOrDefault(name, def) {
+    const params = new URLSearchParams(window.location.search);
+    return params.has(name) ? params.get(name) : def;
+  }
+
+  // Function to update the 2D map with current positions
+  function updateMap(task1, task2, robot1, robot2) {
+    const mapContainer = document.getElementById('map-entities');
+    mapContainer.innerHTML = '';
+    
+    const mapWidth = 300;
+    const mapHeight = 300;
+    const worldSize = 500;
+    
+    // Scale coordinates from world space (0-500) to map space (0-300)
+    function scaleCoord(coord) {
+      return (coord / worldSize) * mapWidth;
+    }
+    
+    // Create task entities (red)
+    const entities = [
+      { type: 'task', name: 'Task 1', pos: task1, color: 'red' },
+      { type: 'task', name: 'Task 2', pos: task2, color: 'red' },
+      { type: 'robot', name: 'Robot 1', pos: robot1, color: 'green' },
+      { type: 'robot', name: 'Robot 2', pos: robot2, color: 'green' }
+    ];
+    
+    entities.forEach(entity => {
+      const x = scaleCoord(entity.pos.x);
+      const y = mapHeight - scaleCoord(entity.pos.y); // Flip Y axis for display
+      
+      // Create entity dot
+      const dot = document.createElement('div');
+      dot.className = `map-entity ${entity.type}-entity`;
+      dot.style.left = x + 'px';
+      dot.style.top = y + 'px';
+      
+      // Create label
+      const label = document.createElement('div');
+      label.className = 'entity-label';
+      label.textContent = entity.name;
+      label.style.left = x + 'px';
+      label.style.top = (y - 15) + 'px';
+      
+      mapContainer.appendChild(dot);
+      mapContainer.appendChild(label);
+    });
+  }
+
+  // Function to populate input fields from URL parameters
+  function populateInputFields() {
+    const params = new URLSearchParams(window.location.search);
+    const inputFields = [
+      'task1_x', 'task1_y', 'task1_theta',
+      'task2_x', 'task2_y', 'task2_theta',
+      'robot1_x', 'robot1_y', 'robot1_theta',
+      'robot2_x', 'robot2_y', 'robot2_theta'
+    ];
+    
+    inputFields.forEach(field => {
+      const value = params.get(field);
+      if (value !== null) {
+        document.getElementById(field).value = value;
+      }
+    });
+  }
+
+  // Function to start animation with current input values
+  function startAnimation() {
+    const task1 = {
+      x: +document.getElementById('task1_x').value || 0,
+      y: +document.getElementById('task1_y').value || 0,
+      theta: +document.getElementById('task1_theta').value || 0
+    };
+    const task2 = {
+      x: +document.getElementById('task2_x').value || 500,
+      y: +document.getElementById('task2_y').value || 0,
+      theta: +document.getElementById('task2_theta').value || 0
+    };
+    const robot1 = {
+      x: +document.getElementById('robot1_x').value || 0,
+      y: +document.getElementById('robot1_y').value || 500,
+      theta: +document.getElementById('robot1_theta').value || 0
+    };
+    const robot2 = {
+      x: +document.getElementById('robot2_x').value || 500,
+      y: +document.getElementById('robot2_y').value || 500,
+      theta: +document.getElementById('robot2_theta').value || 0
+    };
+
+    storedValues[1] = `(${task1.x}, ${task1.y}, ${task1.theta})`;
+    storedValues[3] = `(${task2.x}, ${task2.y}, ${task2.theta})`;
+    storedValues[4] = `(${robot1.x}, ${robot1.y}, ${robot1.theta})`;
+    storedValues[5] = `(${robot2.x}, ${robot2.y}, ${robot2.theta})`;
+
+    // Update the 2D map with current positions
+    updateMap(task1, task2, robot1, robot2);
+
+    function dist(a, b) {
+      return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
+    }
+    function softmin(costs, beta = 10) {
+      if (!Array.isArray(costs) || costs.length === 0) throw new Error("Input must be a non-empty array.");
+      if (!costs.every(v => typeof v === 'number' && isFinite(v))) throw new Error("All cost values must be finite numbers.");
+      const min = Math.min(...costs);
+      const exps = costs.map(v => Math.exp(-beta * (v - min)));
+      const sum = exps.reduce((a, b) => a + b, 0);
+      if (sum === 0) return Array(costs.length).fill(1 / costs.length);
+      return exps.map(v => v / sum);
+    }
+    d11 = dist(robot1, task1);
+    d12 = dist(robot1, task2);
+    d21 = dist(robot2, task1);
+    d22 = dist(robot2, task2);
+    rc11 = - d12;
+    rc12 = - d11;
+    rc21 = - d22;
+    rc22 = - d21;
+    weights1 = softmin([rc11, rc12]);
+    weights2 = softmin([rc21, rc22]);
+    sum = weights1[0] * weights2[0] + weights1[1] * weights2[1];
+
+    // Clear values for all nodes except input nodes
+    storedValues[6] = "";
+    storedValues[8] = "";
+    storedValues[9] = "";
+    storedValues[10] = "";
+    storedValues[15] = "";
+    storedValues[16] = "";
+    storedValues[17] = "";
+
+    valueDivs[1].textContent = storedValues[1];
+    valueDivs[3].textContent = storedValues[3];
+    valueDivs[4].textContent = storedValues[4];
+    valueDivs[5].textContent = storedValues[5];
+    valueDivs[6].textContent = storedValues[6];
+    valueDivs[8].textContent = storedValues[8];
+    valueDivs[9].textContent = storedValues[9];
+    valueDivs[10].textContent = storedValues[10];
+    valueDivs[15].textContent = storedValues[15];
+    valueDivs[16].textContent = storedValues[16];
+    valueDivs[17].textContent = storedValues[17];
+
+    // Set above labels for a^1_t, a^2_t, cv_t to empty at the beginning
+    aboveLabels[15] = "";
+    aboveLabels[16] = "";
+    aboveLabels[17] = "";
+    aboveLabelDivs[15].textContent = aboveLabels[15];
+    aboveLabelDivs[16].textContent = aboveLabels[16];
+    aboveLabelDivs[17].textContent = aboveLabels[17];
+
+    updateLabelPositions();
+
+const output = `
+Task Evaluation Factor :
+Robot 1 → Task 1: ${d11.toFixed(2)}
+Robot 1 → Task 2: ${d12.toFixed(2)}
+Robot 2 → Task 1: ${d21.toFixed(2)}
+Robot 2 → Task 2: ${d22.toFixed(2)}
+Regret Factor:
+Regret Robot 1 → Task 1: ${rc11.toFixed(2)}
+Regret Robot 1 → Task 2: ${rc12.toFixed(2)}
+Regret Robot 2 → Task 1: ${rc21.toFixed(2)}
+Regret Robot 2 → Task 2: ${rc22.toFixed(2)}
+
+sum of regret and evaluated cost in task collision avoidance factor: 
+Regret and cost Robot 1 → Task 1: ${(dist(robot1, task1)-dist(robot1, task2)).toFixed(2)}
+Regret and cost Robot 1 → Task 2: ${(dist(robot1, task2)-dist(robot1, task1)).toFixed(2)}
+Regret and cost Robot 2 → Task 1: ${(dist(robot2, task1)-dist(robot2, task2)).toFixed(2)}
+Regret and cost Robot 2 → Task 2: ${(dist(robot2, task2)-dist(robot2, task1)).toFixed(2)}
+
+soft min robot 1, Assignment Factor:(${weights1.map(x => x.toFixed(2)).join(', ')})
+
+soft min root2, Assignment Factor:(${weights2.map(x => x.toFixed(2)).join(', ')})
+
+cv:${sum.toFixed(2)}
+`.trim();
+    document.getElementById('distanceOutput').textContent = output;
+
+    nodeData.forEach(n => haloRadii[n.id] = DEFAULT_RADIUS);
+    drawHalos();
+
+    // Start the main animation
+    animateMessagesInTwoGroups();
+    
+    // Check if cv == 1 and trigger additional animations
+    setTimeout(() => {
+      if (Math.abs(sum - 1) < 0.01) { // Check if cv is approximately 1
+        console.log('CV == 1 detected! Triggering additional animations...');
+        animateConvergenceMessages();
+      }
+    }, 15000); // Wait for main animation to complete (approximately 15 seconds)
+  }
+  
+  // Function to animate additional messages when cv == 1
+  function animateConvergenceMessages() {
+    const positions = network.getPositions(nodes.getIds());
+    
+    // Create special convergence messages
+    const convergenceEdges = [
+    { from: 6, to: 49 },
+    { from: 8, to: 49 },
+    { from: 9, to: 49 },
+    { from: 10, to: 49 },
+    { from: 49, to: 6 },
+    { from: 49, to: 8 },
+    { from: 49, to: 9 },
+    { from: 49, to: 10 },
+    { from: 10, to: 51 },
+    { from: 9, to: 50 },
+    { from: 15, to: 50 },
+    { from: 16, to: 51 },
+    { from: 50, to: 9 },
+    { from: 51, to: 10 },
+    { from: 50, to: 15 },
+    { from: 51, to: 16 },
+    { from: 17, to: 52 },
+    { from: 16, to: 52 },
+    { from: 15, to: 52 },
+    { from: 52, to: 17 },
+    { from: 52, to: 16 },
+    { from: 52, to: 15 },
+    ];
+    
+    // Animate first group (edges 0-3) together
+    const firstGroup = convergenceEdges.slice(0, 4);
+    const secondGroup = convergenceEdges.slice(4, 8);
+    const thirdGroup = convergenceEdges.slice(8, 12);
+    const fourthGroup = convergenceEdges.slice(12, 16);
+    const fifthGroup = convergenceEdges.slice(16, 19);
+    const sixthGroup = convergenceEdges.slice(19, 22);
+    
+    function animateGroup(group, callback) {
+      let finished = 0;
+      if (group.length === 0) {
+        if (callback) callback();
+        return;
+      }
+      group.forEach(edge => {
+        animateMessage(edge.from, edge.to, positions, () => {
+          finished++;
+          if (finished === group.length && callback) callback();
+        });
+      });
+    }
+    
+    animateGroup(firstGroup, () => {
+      const results = computeConvergenceValues();
+      d11 = results.f1[0];
+      d12 = results.f1[1];
+      d21 = results.f2[0];
+      d22 = results.f2[1];
+
+      sum = weights1[0] * weights2[0] + weights1[1] * weights2[1];
+  storedValues[17] = `${sum.toFixed(4)}`;
+  valueDivs[17].textContent = storedValues[17];
+  highlightValueDiv(17);
+  aboveLabels[17] = storedValues[17];
+  aboveLabelDivs[17].textContent = aboveLabels[17];
+
+  // Recompute weights1 and weights2 as in startAnimation
+      // rc11, rc12, rc21, rc22 are available globally
+      function softmin(costs, beta = 10) {
+        if (!Array.isArray(costs) || costs.length === 0) throw new Error("Input must be a non-empty array.");
+        if (!costs.every(v => typeof v === 'number' && isFinite(v))) throw new Error("All cost values must be finite numbers.");
+        const min = Math.min(...costs);
+        const exps = costs.map(v => Math.exp(-beta * (v - min)));
+        const sum = exps.reduce((a, b) => a + b, 0);
+        if (sum === 0) return Array(costs.length).fill(1 / costs.length);
+        return exps.map(v => v / sum);
+      }
+
+      animateGroup(secondGroup, () => {
+          storedValues[9] = `(${results.f1.map(x => x.toFixed(2)).join(', ')})`;
+      valueDivs[9].textContent = storedValues[9];
+      highlightValueDiv(9);
+      storedValues[10] = `(${results.f2.map(x => x.toFixed(2)).join(', ')})`;
+      valueDivs[10].textContent = storedValues[10];
+      highlightValueDiv(10);
+      setTimeout(() => {
+ 
+          setTimeout(() => {
+
+      
+            animateGroup(thirdGroup, () => {
+              setTimeout(() => {
+                animateGroup(fourthGroup, () => {
+                  const weights1 = softmin([rc11+d11, rc12+d12]);
+  const weights2 = softmin([rc21+d21, rc22+d22]);
+  
+  // Debug: Check if valueDivs exist
+  console.log('valueDivs[15]:', valueDivs[15]);
+  console.log('valueDivs[16]:', valueDivs[16]);
+  console.log('weights1:', weights1);
+  console.log('weights2:', weights2);
+  sum = weights1[0] * weights2[0] + weights1[1] * weights2[1];
+
+  storedValues[15] = `(${weights1.map(x => x.toFixed(2)).join(', ')})`;
+  storedValues[16] = `(${weights2.map(x => x.toFixed(2)).join(', ')})`;                 // Update both valueDivs and aboveLabelDivs for nodes 15 and 16
+  if (valueDivs[15]) {
+    valueDivs[15].textContent = storedValues[15];
+    highlightValueDiv(15);
+  } else {
+    console.error('valueDivs[15] does not exist');
+  }
+  
+  if (valueDivs[16]) {
+    valueDivs[16].textContent = storedValues[16];
+    highlightValueDiv(16);
+  } else {
+    console.error('valueDivs[16] does not exist');
+  }
+  
+  // Also update aboveLabelDivs for nodes 15 and 16
+  if (aboveLabelDivs[15]) {
+    aboveLabelDivs[15].textContent = storedValues[15];
+  }
+  
+  if (aboveLabelDivs[16]) {
+    aboveLabelDivs[16].textContent = storedValues[16];
+  }
+                  setTimeout(() => {
+ 
+                    animateGroup(fifthGroup, () => {
+
+  
+
+                      setTimeout(() => {
+ 
+                        animateGroup(sixthGroup, () => {
+
+                          console.log('Convergence animation completed');
+                        });
+                      }, 1000);
+                    });
+                  }, 1000);
+                });
+              }, 1000);
+            });
+          }, 1000);
+        });
+      }, 1000);
+    });
+    
+    // Add visual feedback
+    const convergenceDiv = document.createElement('div');
+    convergenceDiv.style.position = 'fixed';
+    convergenceDiv.style.top = '20px';
+    convergenceDiv.style.left = '50%';
+    convergenceDiv.style.transform = 'translateX(-50%)';
+    convergenceDiv.style.background = 'rgba(76, 175, 80, 0.9)';
+    convergenceDiv.style.color = 'white';
+    convergenceDiv.style.padding = '10px 20px';
+    convergenceDiv.style.borderRadius = '5px';
+    convergenceDiv.style.fontWeight = 'bold';
+    convergenceDiv.style.zIndex = '1000';
+    convergenceDiv.textContent = 'Convergence Detected CV = 1';
+    document.body.appendChild(convergenceDiv);
+    
+    // Remove the notification after 5 seconds
+    setTimeout(() => {
+      document.body.removeChild(convergenceDiv);
+    }, 5000);
+  }
+
+  function stableSoftmin(arr, alpha=10) {
+    // Numerically stable softmin
+    const min = Math.min(...arr);
+    const exps = arr.map(x => Math.exp(-alpha * (x - min)));
+    const sumExp = exps.reduce((a, b) => a + b, 0);
+    const softmin = exps.map(x => x / sumExp);
+    return [softmin, exps, sumExp];
+  }
+
+  function computeConvergenceValues() {
+    // c1, c2, r1, r2
+    const c1 = [d11, d12];
+    const c2 = [d21, d22];
+    const r1 = [rc11, rc12];
+    const r2 = [rc21, rc22];
+
+    // s1 = c1 + r1, s2 = c2 + r2
+    const s1 = [c1[0] + r1[0], c1[1] + r1[1]];
+    const s2 = [c2[0] + r2[0], c2[1] + r2[1]];
+
+    // pi1, _, _ = stable_softmin(s1, alpha=10)
+    // pi2, _, _ = stable_softmin(s2, alpha=10)
+    const [pi1] = stableSoftmin(s1, 10);
+    const [pi2] = stableSoftmin(s2, 10);
+
+    // match_score = np.dot(pi1, pi2)
+    const match_score = pi1[0] * pi2[0] + pi1[1] * pi2[1];
+
+    // s1b = 20 * s1, s2b = 20 * s2
+    const s1b = s1.map(x => 20 * x);
+    const s2b = s2.map(x => 20 * x);
+
+    // max_s = np.maximum(s1b, s2b)
+    const max_s = [Math.max(s1b[0], s2b[0]), Math.max(s1b[1], s2b[1])];
+
+    // exp1 = np.exp(s1b - max_s), exp2 = np.exp(s2b - max_s)
+    const exp1 = [Math.exp(s1b[0] - max_s[0]), Math.exp(s1b[1] - max_s[1])];
+    const exp2 = [Math.exp(s2b[0] - max_s[0]), Math.exp(s2b[1] - max_s[1])];
+
+    // Z = exp1 + exp2
+    const Z = [exp1[0] + exp2[0], exp1[1] + exp2[1]];
+
+    // w1 = exp1 / Z, w2 = exp2 / Z
+    const w1 = [exp1[0] / Z[0], exp1[1] / Z[1]];
+    const w2 = [exp2[0] / Z[0], exp2[1] / Z[1]];
+
+    // penalty1 = 1000000 * w1 * match_score * pi1
+    // penalty2 = 1000000 * w2 * match_score * pi2
+    const penalty1 = [1000000 * w1[0] * match_score * pi1[0], 1000000 * w1[1] * match_score * pi1[1]];
+    const penalty2 = [1000000 * w2[0] * match_score * pi2[0], 1000000 * w2[1] * match_score * pi2[1]];
+
+    // f1 = 1*penalty1-c1, f2 = 1*penalty2-c2
+    const f1 = [penalty1[0] + c1[0], penalty1[1] + c1[1]];
+    const f2 = [penalty2[0] + c2[0], penalty2[1] + c2[1]];
+
+    return {c1, c2, r1, r2, s1, s2, pi1, pi2, match_score, s1b, s2b, max_s, exp1, exp2, Z, w1, w2, penalty1, penalty2, f1, f2};
+  }
+
+  // Add event listener for the button
+  document.getElementById('resetHalosBtn').addEventListener('click', startAnimation);
+
+  // Initialize the page
+  populateInputFields();
+  
+  // Update map with initial values
+  const initialTask1 = {
+    x: +document.getElementById('task1_x').value || 0,
+    y: +document.getElementById('task1_y').value || 0,
+    theta: +document.getElementById('task1_theta').value || 0
+  };
+  const initialTask2 = {
+    x: +document.getElementById('task2_x').value || 500,
+    y: +document.getElementById('task2_y').value || 0,
+    theta: +document.getElementById('task2_theta').value || 0
+  };
+  const initialRobot1 = {
+    x: +document.getElementById('robot1_x').value || 0,
+    y: +document.getElementById('robot1_y').value || 500,
+    theta: +document.getElementById('robot1_theta').value || 0
+  };
+  const initialRobot2 = {
+    x: +document.getElementById('robot2_x').value || 500,
+    y: +document.getElementById('robot2_y').value || 500,
+    theta: +document.getElementById('robot2_theta').value || 0
+  };
+  updateMap(initialTask1, initialTask2, initialRobot1, initialRobot2);
+  
+  // Auto-start animation if parameters are present
+  const params = new URLSearchParams(window.location.search);
+  if (params.toString()) {
+    // Wait for network to stabilize before starting animation
+    network.once("stabilized", () => {
+      setTimeout(() => startAnimation(), 500);
+    });
+  }
+
+  resizeCanvas();
+  network.once("stabilized", () => {
+    updateLabelPositions();
+    drawFactorSquares();
+  });
+</script>
+</body>
+</html>
